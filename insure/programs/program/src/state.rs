@@ -31,9 +31,10 @@ pub struct Vault {
 
     pub total_policies:u64,
     pub total_claims:u64,
+    pub treasury_bump:u8,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
 #[derive(InitSpace)]
 pub enum ClaimStatus {
     Pending,
@@ -48,10 +49,9 @@ pub enum ClaimStatus {
 pub struct PolicyHolder {
     pub vault: Pubkey,
     pub owner: Pubkey,
-    pub premium_paid: u64,
-    pub coverage_start: i64,
-    pub coverage_end: i64,
-    pub is_active: bool,
+    pub total_premiums_paid: u64,
+    pub personal_coverage_end: i64,
+    pub is_subscribed: bool,
     pub claim_count: u64,
     pub bump: u8,
 }
@@ -59,6 +59,7 @@ pub struct PolicyHolder {
 #[account]
 #[derive(InitSpace)]
 pub struct Claim {
+    pub index: u64,
     pub vault: Pubkey,
     pub claimant: Pubkey,
     pub claim_time: i64,
@@ -70,7 +71,6 @@ pub struct Claim {
 
 #[derive(AnchorSerialize,AnchorDeserialize,Clone)]
 #[derive(InitSpace)]
-
 pub enum ClaimData {
     Weather {
         latitude: f64,

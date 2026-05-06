@@ -73,7 +73,7 @@ pub mod insure {
         vault.total_policies = 0;
         vault.total_claims = 0;
 
-        emit!(VaultCreated{
+        emit!(VaultCreated {
             vault: vault.key(),
             authority: ctx.accounts.authority.key(),
             trigger_type: vault.trigger_type.clone(),
@@ -86,33 +86,165 @@ pub mod insure {
         Ok(())
     }
 
-    pub fn buy_premium(ctx: Context<BuyPremium>) -> Result<()> {
-
+    pub fn subscribe(ctx: Context<Subscribe>) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
-        let policy = & mut ctx.accounts.policy_holder;
+        let policy = &mut ctx.accounts.policy;
         let clock = Clock::get()?;
-        
-        require!(
-            clock.unix_timestamp <= vault.subscription_end && clock.unix_timestamp >=vault.subscription_start,
-            InsuranceError::SubscriptionClosed
-        );
-        require!(
-            !vault.is_paused,
-            InsuranceError::VaultPaused,
-        );
+        require!(!vault.is_paused, InsuranceError::VaultPaused);
 
         require!(
-            !policy.is_active,
-            InsuranceError::AlreadySubscribed
+            clock.unix_timestamp >= vault.subscription_start
+                && clock.unix_timestamp <= vault.subscription_end,
+            InsuranceError::SubscriptionClosed,
         );
+
+        let total_committed = vault
+            .total_policies
+            .checked_mul(vault.coverage_amount)
+            .unwrap();
+
         require!(
-            vault.total_liquidity >= vault.total_claims_paid + vault.coverage_amount,
+            vault.total_liquidity >= total_committed.checked_add(vault.coverage_amount).unwrap(),
             InsuranceError::InsufficientLiquidity
         );
+
+        policy.vault = vault.key();
+        policy.owner = ctx.accounts.owner.key();
+        policy.is_subscribed = true;
+        policy.personal_coverage_end = 0;
+        policy.total_premiums_paid = 0;
+        policy.claim_count = 0;
+        policy.bump = ctx.bumps.policy;
+
         Ok(())
     }
 
-    pub fn raise_claim(ctx: Context<RaiseClaim>) -> Result<()> {
+    pub const MONTH: i64 = 30 * 24 * 60 * 60;
+    pub fn pay_premium(ctx: Context<PayPremium>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let policy = &mut ctx.accounts.policy;
+        let clock = Clock::get()?;
+        require!(!vault.is_paused, InsuranceError::VaultPaused);
+
+        require!(policy.is_subscribed, InsuranceError::NotSubscribed);
+        require!(
+            clock.unix_timestamp >= vault.coverage_start
+                && clock.unix_timestamp <= vault.coverage_end,
+            InsuranceError::OutsideCoverageWindow
+        );
+
+        let grace_period: i64 = 10 * 24 * 60 * 60;
+
+        if policy.personal_coverage_end > 0 {
+            require!(
+                clock.unix_timestamp <= policy.personal_coverage_end + grace_period,
+                InsuranceError::CoverageLapsed,
+            );
+        }
+
+        let creator_fee = (vault.premium_amount as u128)
+            .checked_mul(vault.creator_fee_bps as u128)
+            .unwrap()
+            .checked_div(10_000)
+            .unwrap() as u64;
+        let treasury_amount = vault.premium_amount.checked_sub(creator_fee).unwrap();
+
+        anchor_spl::token::transfer_checked(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                anchor_spl::token::TransferChecked {
+                    from: ctx.accounts.owner_usdc.to_account_info(),
+                    mint: ctx.accounts.usdc_mint.to_account_info(),
+                    to: ctx.accounts.vault_treasury.to_account_info(),
+                    authority: ctx.accounts.owner.to_account_info(),
+                },
+            ),
+            treasury_amount,
+            6,
+        )?;
+        anchor_spl::token::transfer_checked(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                anchor_spl::token::TransferChecked {
+                    from: ctx.accounts.owner_usdc.to_account_info(),
+                    mint: ctx.accounts.usdc_mint.to_account_info(),
+                    to: ctx.accounts.creator_usdc.to_account_info(),
+                    authority: ctx.accounts.owner.to_account_info(),
+                },
+            ),
+            creator_fee,
+            6,
+        )?;
+
+        if policy.personal_coverage_end == 0 {
+            policy.personal_coverage_end = vault.coverage_start + MONTH;
+        } else {
+            policy.personal_coverage_end = policy.personal_coverage_end.checked_add(MONTH).unwrap();
+        }
+
+        if policy.personal_coverage_end > vault.coverage_end {
+            policy.personal_coverage_end = vault.coverage_end;
+        }
+
+        policy.total_premiums_paid = policy
+            .total_premiums_paid
+            .checked_add(vault.premium_amount)
+            .unwrap();
+
+        vault.total_premiums_collected = vault
+            .total_premiums_collected
+            .checked_add(vault.premium_amount)
+            .unwrap();
+
+        emit!(PremiumPaid {
+            vault: vault.key(),
+            policy_holder: ctx.accounts.owner.key(),
+            amount_paid: vault.premium_amount,
+            personal_coverage_end: policy.personal_coverage_end,
+            timestamp: clock.unix_timestamp,
+        });
+        Ok(())
+    }
+
+    pub fn raise_claim(ctx: Context<RaiseClaim>, claim_data: ClaimData) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let claimant = ctx.accounts.claimant.key();
+        let policy = &mut ctx.accounts.policy;
+        let claim = &mut ctx.accounts.claim;
+        let clock = Clock::get()?;
+
+        require!(!vault.is_paused, InsuranceError::VaultPaused,);
+        require!(
+            policy.owner.as_ref() == claimant.as_ref(),
+            InsuranceError::Unauthorised,
+        );
+        require!(policy.is_subscribed, InsuranceError::NotSubscribed);
+
+        require!(
+            clock.unix_timestamp <= vault.coverage_end
+                && clock.unix_timestamp >= vault.coverage_start
+                && clock.unix_timestamp <= policy.personal_coverage_end,
+            InsuranceError::OutsideCoverageWindow,
+        );
+        let claim_data_clone = claim_data.clone();
+        claim.vault = vault.key();
+        claim.claimant = claimant;
+        claim.claim_time = clock.unix_timestamp;
+        claim.claim_data = claim_data_clone.clone();
+        claim.status = ClaimStatus::Pending;
+        claim.payout_amount = 0;
+        claim.bump = ctx.bumps.claim;
+        claim.index = policy.claim_count;
+
+        emit!(ClaimFiled {
+            vault: vault.key(),
+            claimant: claimant,
+            claim_time: claim.claim_time,
+            claim_data: claim_data_clone.clone(),
+            claim_status: claim.status,
+            claim_index: claim.index,
+        });
+
         Ok(())
     }
 }
@@ -129,7 +261,21 @@ pub struct Initialize<'info> {
         bump
     )] // first we need to initialize.
     pub vault: Account<'info, Vault>,
+
+    #[account(
+        init,
+        payer = authority,
+        token::mint = usdc_mint,
+        token::authority = vault,
+        seeds = [b"treasury", vault.key().as_ref()],
+        bump
+    )]
+    pub vault_treasury: Account<'info, TokenAccount>,
+    pub usdc_mint: Account<'info, Mint>,
+
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
     // we will deal with args inside the intialize_vault in a different struct. First we are only creating the vault
 }
 
@@ -137,10 +283,20 @@ pub struct Initialize<'info> {
 pub struct RaiseClaim<'info> {
     #[account(mut)]
     claimant: Signer<'info>,
-    #[account(mut)]
-    vault: Account<'info, Vault>,
-    #[account(mut)]
-    policy: Account<'info, PolicyHolder>,
+    #[account(
+        mut,
+        seeds = [b"vault", vault.authority.as_ref()],
+        bump = vault.bump
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        mut,
+        seeds=[b"policy", vault.key().as_ref(), owner.key().as_ref()],
+        bump = policy.bump,
+        constraint = policy.owner == owner.key()
+            @ InsuranceError::Unauthorised
+    )]
+    pub policy: Account<'info, PolicyHolder>,
     #[account(
         init,
         payer = claimant,
@@ -153,16 +309,42 @@ pub struct RaiseClaim<'info> {
 }
 
 #[derive(Accounts)]
-pub struct BuyPremium<'info> {
+pub struct SettleClaim<'info>{
     #[account(
-        init_if_needed,
-        payer = owner,
-        space = 8 + PolicyHolder::INIT_SPACE,
-        seeds = [b"premium", vault.key().as_ref(), owner.key().as_ref()],
-        bump
+        mut,
+        seeds = [b"claim", vault.key().as_ref(), policy.owner.as_ref(), claim.index.to_le_bytes()],
+        bump = claim.bump,
+        constraint = claim.claimant==policy.owner @ InsuranceError::Unauthorised,
     )]
-    pub policy_holder: Account<'info, PolicyHolder>,
+    pub claim: Account<'info, Claim>,
+    
+    #[account(
+        mut,
+        seeds = [b"vault", vault.authority.as_ref()],
+        bump = vault.bump
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        mut,
+        seeds=[b"policy", vault.key().as_ref(), owner.key().as_ref()],
+        bump = policy.bump,
+        constraint = policy.owner == owner.key()
+            @ InsuranceError::Unauthorised
+    )]
+    pub policy: Account<'info, PolicyHolder>,
 
+    #[account(
+        mut,
+        constraint = owner_usdc.owner == owner.key() @ InsuranceError::Unauthorised,
+        constraint = owner_usdc.mint == usdc_mint.key() @ InsuranceError::InvalidMint
+    )]
+    pub owner_usdc: Account<'info, TokenAccount>,
+
+    
+}
+
+#[derive(Accounts)]
+pub struct Subscribe<'info> {
     #[account(
         mut,
         seeds = [b"vault", vault.authority.as_ref()],
@@ -170,39 +352,69 @@ pub struct BuyPremium<'info> {
     )]
     pub vault: Account<'info, Vault>,
 
-    // this is the for the owner's usdc account ( amount will be debited from here )
     #[account(
-        mut,
-        constraint = owner_usdc.owner == owner.key(),
-        constraint = owner_usdc.mint == usdc_mint.key(),
+        init,
+        payer = owner,
+        space = 8 + PolicyHolder::INIT_SPACE,
+        seeds = [
+            b"policy",
+            vault.key().as_ref(),
+            owner.key().as_ref()
+        ],
+        bump
     )]
-    pub owner_usdc : Account<'info, TokenAccount>,
+    pub policy: Account<'info, PolicyHolder>,
 
-    // vault's USDC treasury ( amount credited here )
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct PayPremium<'info> {
     #[account(
         mut,
-        constraint = vault_treasury.owner == vault.key()
+        seeds=[b"vault", vault.authority.as_ref()],
+        bump = vault.bump
     )]
-    pub vault_treasury: Account<'info,TokenAccount>,
+    pub vault: Account<'info, Vault>,
 
     #[account(
         mut,
-        constraint = creator_usdc.owner == vault.authority
+        seeds=[b"policy", vault.key().as_ref(), owner.key().as_ref()],
+        bump = policy.bump,
+        constraint = policy.owner == owner.key()
+            @ InsuranceError::Unauthorised
+    )]
+    pub policy: Account<'info, PolicyHolder>,
+
+    #[account(
+        mut,
+        constraint = owner_usdc.owner == owner.key() @ InsuranceError::Unauthorised,
+        constraint = owner_usdc.mint == usdc_mint.key() @ InsuranceError::InvalidMint
+    )]
+    pub owner_usdc: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"treasury", vault.key().as_ref()],
+        bump = vault.treasury_bump,
+    )]
+    pub vault_treasury: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        constraint = creator_usdc.owner == vault.authority @ InsuranceError::Unauthorised,
+        constraint = creator_usdc.mint == usdc_mint.key() @ InsuranceError::InvalidMint
     )]
     pub creator_usdc: Account<'info, TokenAccount>,
 
     pub usdc_mint: Account<'info, Mint>,
+
     #[account(mut)]
     pub owner: Signer<'info>,
     pub token_program: Program<'info, Token>,
-
-    pub system_program: Program<'info, System>,
 }
-
-
-
-
-
 
 // EVENTS
 #[event]
@@ -215,4 +427,23 @@ pub struct VaultCreated {
     pub premium_amount: u64,
     pub coverage_amount: u64,
     pub timestamp: i64,
+}
+
+#[event]
+pub struct PremiumPaid {
+    vault: Pubkey,
+    policy_holder: Pubkey,
+    amount_paid: u64,
+    personal_coverage_end: i64,
+    timestamp: i64,
+}
+
+#[event]
+pub struct ClaimFiled {
+    vault: Pubkey,
+    claimant: Pubkey,
+    claim_time: i64,
+    claim_data: ClaimData,
+    claim_status: ClaimStatus,
+    claim_index: u64
 }
