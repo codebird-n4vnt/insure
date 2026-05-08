@@ -23,6 +23,7 @@ custom-panic = []
 [dependencies]
 anchor-lang = {version = "1.0.0", features=["init-if-needed"]} 
 anchor-spl = "1.0.2"
+switchboard-on-demand = "0.12.1"
 
 [dev-dependencies]
 litesvm = "0.10.0"

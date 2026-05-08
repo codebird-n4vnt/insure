@@ -32,6 +32,12 @@ pub enum InsuranceError {
     #[msg("You are trying to pay premium outside the coverage window")] OutsideCoverageWindow,
 
     #[msg("Your insurance coverage is lapsed, please buy any other premium")] CoverageLapsed,
+
+    #[msg("This claim was already approved")] ClaimApproved,
+
+    #[msg("This claim was rejected")] ClaimRejected,
+
+    #[msg("Invalid oracle result")] InvalidOracleResult,
 }   
 
 

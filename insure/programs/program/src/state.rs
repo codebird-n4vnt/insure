@@ -35,13 +35,11 @@ pub struct Vault {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
-#[derive(InitSpace)]
+#[derive(InitSpace, PartialEq)]
 pub enum ClaimStatus {
     Pending,
-    OracleQueried,
     Approved,
     Rejected,
-    Paid,
 }
 
 #[account]
@@ -59,10 +57,11 @@ pub struct PolicyHolder {
 #[account]
 #[derive(InitSpace)]
 pub struct Claim {
-    pub index: u64,
     pub vault: Pubkey,
     pub claimant: Pubkey,
-    pub claim_time: i64,
+    pub claim_number: u64,
+    pub filed_at: i64,
+    pub settled_at: i64,
     pub status: ClaimStatus,
     pub payout_amount: u64,
     pub bump: u8,

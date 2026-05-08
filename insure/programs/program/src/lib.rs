@@ -3,15 +3,18 @@ pub mod state;
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
+use switchboard_on_demand::prelude::rust_decimal::prelude::ToPrimitive;
+use switchboard_on_demand::PullFeedAccountData;
 
 pub use error::*;
 pub use state::*;
 
-declare_id!("5DkAk2HYyi7XDXGJpXnZuvEu7n9CLEXEFMNFnTGkjzTo");
+declare_id!("8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw");
 
 #[program]
 pub mod insure {
-    use super::*;
+
+use super::*;
 
     pub fn initialize_vault(
         ctx: Context<Initialize>,
@@ -120,6 +123,7 @@ pub mod insure {
     }
 
     pub const MONTH: i64 = 30 * 24 * 60 * 60;
+
     pub fn pay_premium(ctx: Context<PayPremium>) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
         let policy = &mut ctx.accounts.policy;
@@ -205,9 +209,11 @@ pub mod insure {
         });
         Ok(())
     }
+    
+    pub const ORACLE_FEE: u64 = 5_000;
 
     pub fn raise_claim(ctx: Context<RaiseClaim>, claim_data: ClaimData) -> Result<()> {
-        let vault = &mut ctx.accounts.vault;
+        let vault = &ctx.accounts.vault;
         let claimant = ctx.accounts.claimant.key();
         let policy = &mut ctx.accounts.policy;
         let claim = &mut ctx.accounts.claim;
@@ -226,23 +232,113 @@ pub mod insure {
                 && clock.unix_timestamp <= policy.personal_coverage_end,
             InsuranceError::OutsideCoverageWindow,
         );
-        let claim_data_clone = claim_data.clone();
+
+        anchor_spl::token::transfer_checked(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                anchor_spl::token::TransferChecked{
+                    from: ctx.accounts.claimant_usdc.to_account_info(),
+                    mint: ctx.accounts.usdc_mint.to_account_info(),
+                    to: ctx.accounts.vault_treasury.to_account_info(),
+                    authority: ctx.accounts.claimant.to_account_info()
+                },
+            ),
+            ORACLE_FEE,
+            6
+        )?;
+
         claim.vault = vault.key();
         claim.claimant = claimant;
-        claim.claim_time = clock.unix_timestamp;
-        claim.claim_data = claim_data_clone.clone();
+        claim.filed_at = clock.unix_timestamp;
+        claim.settled_at = 0;
+        claim.claim_data = claim_data.clone();
         claim.status = ClaimStatus::Pending;
         claim.payout_amount = 0;
         claim.bump = ctx.bumps.claim;
-        claim.index = policy.claim_count;
+        claim.claim_number = policy.claim_count;
+
+        policy.claim_count = policy.claim_count.checked_add(1).unwrap();
 
         emit!(ClaimFiled {
+        claim:        claim.key(),
+        vault:        vault.key(),
+        claimant:     ctx.accounts.claimant.key(),
+        claim_number: claim.claim_number,
+        filed_at:     clock.unix_timestamp,
+    });
+
+    Ok(())
+    }
+
+    pub fn settle_claim(ctx: Context<SettleClaim>) -> Result<()>{
+        let vault = &mut ctx.accounts.vault;
+        // let policy = &mut ctx.accounts.policy;
+        let claim = &mut ctx.accounts.claim;
+        // let claimant_usdc = &mut ctx.accounts.claimant_usdc;
+        // let vault_treasury = &mut ctx.accounts.vault_treasury;
+        let usdc_mint = &mut ctx.accounts.usdc_mint;
+        // let quote_account = &mut ctx.accounts.quote_account;
+        let clock = Clock::get()?;
+
+        require!(
+            !vault.is_paused,
+            InsuranceError::VaultPaused
+        );
+
+        require!(
+            !(claim.status == ClaimStatus::Approved),
+            InsuranceError::ClaimApproved,
+        );
+        require!(
+            !(claim.status == ClaimStatus::Rejected),
+            InsuranceError::ClaimRejected,
+        );       
+
+        let feed_account_data = ctx.accounts.quote_account.try_borrow_data()?;
+        let feed = PullFeedAccountData::parse(feed_account_data).map_err(|_| InsuranceError::InvalidOracleResult)?;
+        let value = feed.value(0).map_err(|_| InsuranceError::InvalidOracleResult)?;
+
+        let oracle_value = value.to_i64().ok_or(InsuranceError::InvalidOracleResult)?;
+
+        msg!("Oracle value: {}", oracle_value);
+
+        let approved = oracle_value == 1;
+        if approved {
+            let vault_authority = vault.authority;
+            let vault_bump = vault.bump;
+            let seeds = &[b"vault", vault_authority.as_ref(), &[vault_bump]];
+            let signer_seeds = &[&seeds[..]];
+
+
+            anchor_spl::token::transfer_checked(CpiContext::new_with_signer(
+            ctx.accounts.token_program.key(), anchor_spl::token::TransferChecked{
+                from: ctx.accounts.vault_treasury.to_account_info(),
+                mint: usdc_mint.to_account_info(),
+                to: ctx.accounts.claimant_usdc.to_account_info(),
+                authority: vault.to_account_info()
+            }, signer_seeds), vault.coverage_amount, 6)?;
+
+            vault.total_claims_paid = vault.total_claims_paid.checked_add(vault.coverage_amount).unwrap();
+            vault.total_liquidity = vault.total_liquidity.checked_sub(vault.coverage_amount).unwrap();
+
+            claim.payout_amount = vault.coverage_amount;
+            claim.status = ClaimStatus::Approved;
+
+        } else{
+            claim.payout_amount = 0;
+            claim.status = ClaimStatus::Rejected;
+        }
+
+        claim.settled_at = clock.unix_timestamp;
+
+        emit!(ClaimSettled {
+            claim: claim.key(),
             vault: vault.key(),
-            claimant: claimant,
-            claim_time: claim.claim_time,
-            claim_data: claim_data_clone.clone(),
-            claim_status: claim.status,
-            claim_index: claim.index,
+            claimant: claim.claimant,
+            verdict: approved,
+            payout_amount: claim.payout_amount,
+            oracle_value,
+            timestamp: clock.unix_timestamp,
         });
 
         Ok(())
@@ -291,9 +387,9 @@ pub struct RaiseClaim<'info> {
     pub vault: Account<'info, Vault>,
     #[account(
         mut,
-        seeds=[b"policy", vault.key().as_ref(), owner.key().as_ref()],
+        seeds=[b"policy", vault.key().as_ref(), claimant.key().as_ref()],
         bump = policy.bump,
-        constraint = policy.owner == owner.key()
+        constraint = policy.owner == claimant.key()
             @ InsuranceError::Unauthorised
     )]
     pub policy: Account<'info, PolicyHolder>,
@@ -305,6 +401,27 @@ pub struct RaiseClaim<'info> {
         bump
     )]
     pub claim: Account<'info, Claim>,
+
+    #[account(
+        mut,
+        constraint = claimant_usdc.owner == claimant.key()
+            @ InsuranceError::Unauthorised,
+        constraint = claimant_usdc.mint == usdc_mint.key()
+            @ InsuranceError::InvalidMint
+    )]
+    pub claimant_usdc: Account<'info, TokenAccount>,
+
+    // oracle fee goes to vault treasury
+    #[account(
+        mut,
+        seeds = [b"treasury", vault.key().as_ref()],
+        bump = vault.treasury_bump
+    )]
+    pub vault_treasury: Account<'info, TokenAccount>,
+
+
+    pub usdc_mint: Account<'info,Mint>,
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
 
@@ -312,9 +429,8 @@ pub struct RaiseClaim<'info> {
 pub struct SettleClaim<'info>{
     #[account(
         mut,
-        seeds = [b"claim", vault.key().as_ref(), policy.owner.as_ref(), claim.index.to_le_bytes()],
+        seeds = [b"claim", vault.key().as_ref(), claim.claimant.as_ref(), &claim.claim_number.to_le_bytes()],
         bump = claim.bump,
-        constraint = claim.claimant==policy.owner @ InsuranceError::Unauthorised,
     )]
     pub claim: Account<'info, Claim>,
     
@@ -324,23 +440,33 @@ pub struct SettleClaim<'info>{
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
+
     #[account(
         mut,
-        seeds=[b"policy", vault.key().as_ref(), owner.key().as_ref()],
+        seeds=[b"policy", vault.key().as_ref(), policy.owner.as_ref()],
         bump = policy.bump,
-        constraint = policy.owner == owner.key()
-            @ InsuranceError::Unauthorised
     )]
     pub policy: Account<'info, PolicyHolder>,
 
     #[account(
         mut,
-        constraint = owner_usdc.owner == owner.key() @ InsuranceError::Unauthorised,
-        constraint = owner_usdc.mint == usdc_mint.key() @ InsuranceError::InvalidMint
+        constraint = claimant_usdc.owner == claim.claimant @ InsuranceError::Unauthorised,
+        constraint = claimant_usdc.mint == usdc_mint.key() @ InsuranceError::InvalidMint
     )]
-    pub owner_usdc: Account<'info, TokenAccount>,
+    pub claimant_usdc: Account<'info, TokenAccount>,
 
-    
+    pub quote_account: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"treasury", vault.key().as_ref()],
+        bump = vault.treasury_bump
+    )]
+    pub vault_treasury: Account<'info, TokenAccount>,
+
+    pub usdc_mint: Account<'info,Mint>,
+
+    pub token_program: Program<'info, Token>
 }
 
 #[derive(Accounts)]
@@ -440,10 +566,20 @@ pub struct PremiumPaid {
 
 #[event]
 pub struct ClaimFiled {
-    vault: Pubkey,
-    claimant: Pubkey,
-    claim_time: i64,
-    claim_data: ClaimData,
-    claim_status: ClaimStatus,
-    claim_index: u64
+    pub claim:        Pubkey,
+    pub vault:        Pubkey,
+    pub claimant:     Pubkey,
+    pub claim_number: u64,
+    pub filed_at:     i64,
+}
+
+#[event]
+pub struct ClaimSettled{
+    pub claim: Pubkey,
+    pub vault: Pubkey,
+    pub claimant: Pubkey,
+    pub verdict: bool,
+    pub payout_amount: u64,
+    pub oracle_value: i64,
+    pub timestamp: i64,
 }
