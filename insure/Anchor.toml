@@ -12,10 +12,8 @@ program = "5DkAk2HYyi7XDXGJpXnZuvEu7n9CLEXEFMNFnTGkjzTo"
 insure = "8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw"
 
 [provider]
-cluster = "localnet"
+cluster = "https://devnet.helius-rpc.com/?api-key=61e1ae91-d025-4472-8253-bf12d40d6159"
 wallet = "~/.config/solana/id.json"
-
-we need to have a helius rpc url as cluster provider here
 
 [scripts]
 test = "cargo test"
