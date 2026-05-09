@@ -1,6 +1,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
 import IDL from "../../idl/insure.json";
+import type { Insure } from "../../idl/insure";
 
 export const PROGRAM_ID = new PublicKey("8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw");
 export const USDC_MINT = new PublicKey(
@@ -12,7 +13,7 @@ export const connection = new Connection(RPC_URL, "confirmed");
 
 export function getProgram(provider: AnchorProvider) {
   // Anchor v0.30+ reads programId from IDL "address" field — do NOT pass it as 3rd arg
-  return new Program(IDL as any, provider);
+  return new Program<Insure>(IDL as any, provider);
 }
 
 // On-chain seeds: [b"vault", authority]  — no trigger type or count
