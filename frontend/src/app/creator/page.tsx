@@ -3,11 +3,10 @@
 import { useState } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { AnchorProvider, BN } from '@coral-xyz/anchor';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { CloudRain, Plane, Plus, ArrowRight, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import {
-  getProgram, USDC_MINT, vaultPDA, vaultTreasuryPDA, toUSDC,
+  getProgram, USDC_MINT, vaultPDA, toUSDC,
 } from '@/lib/anchor';
 
 type TriggerType = 'Weather' | 'FlightDelay';
@@ -62,7 +61,6 @@ export default function CreatorPage() {
       }
 
       const triggerTypeArg = triggerType === 'Weather' ? { weather: {} } : { flightDelay: {} };
-      const [treasury] = vaultTreasuryPDA(vaultKey);
       const creatorUsdc = await getAssociatedTokenAddress(USDC_MINT, publicKey);
 
       await program.methods
@@ -80,12 +78,7 @@ export default function CreatorPage() {
         )
         .accounts({
           authority: publicKey,
-          vault: vaultKey,
-          vaultTreasury: treasury,
           usdcMint: USDC_MINT,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          rent: SYSVAR_RENT_PUBKEY,
         })
         .rpc();
 
@@ -93,11 +86,9 @@ export default function CreatorPage() {
         .depositLiquidity(toUSDC(parseFloat(depositAmount)))
         .accounts({
           vault: vaultKey,
-          vaultTreasury: treasury,
           creatorUsdc,
           creator: publicKey,
           usdcMint: USDC_MINT,
-          tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
 

@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { AnchorProvider, BN } from '@coral-xyz/anchor';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { getAssociatedTokenAddress } from '@solana/spl-token';
+import { PublicKey } from '@solana/web3.js';
 import { CloudRain, Plane, Shield, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import {
-  getProgram, USDC_MINT, vaultTreasuryPDA, policyPDA, claimPDA,
+  getProgram, USDC_MINT, policyPDA, claimPDA,
   formatUSDC, formatDate, triggerTypeLabel,
 } from '@/lib/anchor';
 
@@ -97,9 +97,7 @@ export default function VaultDetailPage() {
         .subscribe()
         .accounts({
           vault: vaultKey,
-          policy: policyKey,
           owner: publicKey!,
-          systemProgram: SystemProgram.programId,
         })
         .rpc();
 
@@ -121,8 +119,6 @@ export default function VaultDetailPage() {
       const provider = getProvider();
       const program = getProgram(provider);
       const vaultKey = new PublicKey(pubkey);
-      const [policyKey] = policyPDA(vaultKey, publicKey!);
-      const [treasury] = vaultTreasuryPDA(vaultKey);
       const ownerUsdc = await getAssociatedTokenAddress(USDC_MINT, publicKey!);
       const creatorUsdc = await getAssociatedTokenAddress(USDC_MINT, vault.authority);
 
@@ -130,13 +126,10 @@ export default function VaultDetailPage() {
         .payPremium()
         .accounts({
           vault: vaultKey,
-          policy: policyKey,
           ownerUsdc,
-          vaultTreasury: treasury,
           creatorUsdc,
           usdcMint: USDC_MINT,
           owner: publicKey!,
-          tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
 
@@ -166,7 +159,6 @@ export default function VaultDetailPage() {
 
       const [claimKey] = claimPDA(vaultKey, publicKey!, claimNumber);
       const claimantUsdc = await getAssociatedTokenAddress(USDC_MINT, publicKey!);
-      const [treasury] = vaultTreasuryPDA(vaultKey);
       const type = triggerTypeLabel(vault.triggerType);
 
       const claimData =
@@ -184,13 +176,9 @@ export default function VaultDetailPage() {
         .accounts({
           claimant: publicKey!,
           vault: vaultKey,
-          policy: policyKey,
           claim: claimKey,
           claimantUsdc,
-          vaultTreasury: treasury,
           usdcMint: USDC_MINT,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
         })
         .rpc();
 
