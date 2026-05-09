@@ -48,7 +48,7 @@ export async function ClaimListener(program : Program, keypair: Keypair, connect
             console.log("Claim resolved:", result.verdict ? 'APPROVED':'REJECTED');
             console.log("Reason:", result.reason);
         } catch (error) {
-            console.error("Oracle failed:", err);
+            console.error("Oracle failed:", error);
         }
     });
 }

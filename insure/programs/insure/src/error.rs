@@ -1,12 +1,6 @@
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum ErrorCode {
-    #[msg("Custom error message")]
-    CustomError,
-}
-
-#[error_code]
 pub enum InsuranceError {
     #[msg("The time you entered is invalid!")]
     InvalidTimeWindow,
@@ -38,6 +32,10 @@ pub enum InsuranceError {
     #[msg("This claim was rejected")] ClaimRejected,
 
     #[msg("Invalid oracle result")] InvalidOracleResult,
+
+    #[msg("Vault is expired")] VaultExpired,
+
+    #[msg("Vault money can only be withdrawn after the vault has expired")] VaultNotExpired,
 }   
 
 

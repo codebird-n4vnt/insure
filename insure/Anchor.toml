@@ -8,9 +8,14 @@ skip-lint = false
 [programs.localnet]
 program = "5DkAk2HYyi7XDXGJpXnZuvEu7n9CLEXEFMNFnTGkjzTo"
 
+[programs.devnet]
+insure = "8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw"
+
 [provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
+
+we need to have a helius rpc url as cluster provider here
 
 [scripts]
 test = "cargo test"

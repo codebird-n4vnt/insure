@@ -22,6 +22,14 @@
     "@switchboard-xyz/on-demand": "^3.10.1",
     "@x402/fetch": "^2.11.0",
     "@x402/svm": "^2.11.0",
-    "dotenv": "^17.4.2"
+    "bs58": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helius-sdk": "^2.2.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6"
   }
 }

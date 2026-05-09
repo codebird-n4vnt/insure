@@ -59,6 +59,7 @@ use super::*;
 
         vault.authority = ctx.accounts.authority.key();
         vault.bump = ctx.bumps.vault;
+        vault.treasury_bump = ctx.bumps.vault_treasury;
         vault.trigger_threshold = trigger_threshold;
         vault.trigger_type = trigger_type;
         vault.subscription_end = subscription_end;
@@ -118,6 +119,8 @@ use super::*;
         policy.total_premiums_paid = 0;
         policy.claim_count = 0;
         policy.bump = ctx.bumps.policy;
+
+        vault.total_policies = vault.total_policies.checked_add(1).unwrap();
 
         Ok(())
     }
@@ -343,6 +346,97 @@ use super::*;
 
         Ok(())
     }
+
+    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, deposit_amount:u64) -> Result<()>{
+
+        let vault = &mut ctx.accounts.vault;
+        let clock = Clock::get()?;
+
+        require!(
+            !vault.is_paused,
+            InsuranceError::VaultPaused
+        );
+
+        require!(
+            clock.unix_timestamp < vault.vault_expiry,
+            InsuranceError::VaultExpired
+        );
+
+        anchor_spl::token::transfer_checked(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                anchor_spl::token::TransferChecked{
+                    from: ctx.accounts.creator_usdc.to_account_info(),
+                    mint: ctx.accounts.usdc_mint.to_account_info(),
+                    to: ctx.accounts.vault_treasury.to_account_info(),
+                    authority: ctx.accounts.creator.to_account_info()
+                }
+            ),
+            deposit_amount,
+            6
+        )?;
+
+        vault.total_liquidity = vault.total_liquidity.checked_add(deposit_amount).unwrap();
+
+        emit!(LiquidityDeposited {
+            vault : vault.key(),
+            creator : vault.authority,
+            deposit_amount: deposit_amount,
+            total_liquidity: vault.total_liquidity,
+        });
+        Ok(())
+    }
+
+    pub fn creator_withdraw(ctx: Context<CreatorWithdraw>) -> Result<()>{
+        let vault = &mut ctx.accounts.vault;
+        let clock = Clock::get()?;
+        require!(
+            !vault.is_paused,
+            InsuranceError::VaultPaused
+        );
+
+        require!(
+            clock.unix_timestamp >= vault.vault_expiry,
+            InsuranceError::VaultNotExpired,
+        );
+
+        require!(
+            ctx.accounts.creator.key() == vault.authority,
+            InsuranceError::Unauthorised
+        );
+
+        let vault_authority = vault.authority;
+        let vault_bump = vault.bump;
+        let seeds = &[b"vault", vault_authority.as_ref(), &[vault_bump]];
+        let signer_seeds = &[&seeds[..]];
+        
+        let withdrawal_amount = ctx.accounts.vault_treasury.amount;
+        anchor_spl::token::transfer_checked(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.key(),
+                anchor_spl::token::TransferChecked{
+                    from: ctx.accounts.vault_treasury.to_account_info(),
+                    mint: ctx.accounts.usdc_mint.to_account_info(),
+                    to: ctx.accounts.creator_usdc.to_account_info(),
+                    authority: vault.to_account_info(),
+                },
+                signer_seeds
+            ),
+            withdrawal_amount,
+            6
+        )?;
+
+        vault.total_liquidity = 0;
+        vault.is_paused = true;
+
+        emit!(LiquidityWithdrawnAndVaultPaused{
+            vault: vault.key(),
+            creator: vault.authority,
+        });
+
+        Ok(())
+    }
+
 }
 
 #[derive(Accounts)]
@@ -368,7 +462,6 @@ pub struct Initialize<'info> {
     )]
     pub vault_treasury: Account<'info, TokenAccount>,
     pub usdc_mint: Account<'info, Mint>,
-
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
@@ -455,6 +548,7 @@ pub struct SettleClaim<'info>{
     )]
     pub claimant_usdc: Account<'info, TokenAccount>,
 
+    ///CHECK: This is the Switchboard oracle pull feed account. Its validity is verified manually by parsing it with `PullFeedAccountData::parse()`.
     pub quote_account: UncheckedAccount<'info>,
 
     #[account(
@@ -542,6 +636,73 @@ pub struct PayPremium<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct DepositLiquidity<'info>{
+    //VAultTreasury
+    //vault
+    //authority usdc
+    //token program ( as there is now account creation SystemProgram won't be required)
+
+    #[account(
+        mut,
+        seeds = [b"vault", vault.authority.as_ref()],
+        bump = vault.bump,
+        constraint = creator.key() == vault.authority @InsuranceError::Unauthorised,
+    )]
+    pub vault : Account<'info, Vault>,
+
+    #[account(
+        mut,
+        seeds = [b"treasury", vault.key().as_ref()],
+        bump = vault.treasury_bump
+    )]
+    pub vault_treasury : Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        constraint = creator_usdc.owner == vault.authority @InsuranceError::Unauthorised,
+        constraint = creator_usdc.mint == usdc_mint.key() @InsuranceError::InvalidMint,
+    )]
+    pub creator_usdc: Account<'info,TokenAccount>,
+
+    #[account(mut)]
+    pub creator:Signer<'info>,
+
+    pub usdc_mint: Account<'info, Mint>,    
+    pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct CreatorWithdraw<'info>{
+    #[account(
+        mut,
+        seeds = [b"vault", vault.authority.as_ref()],
+        bump = vault.bump,
+    )]
+    pub vault : Account<'info, Vault>,
+
+    #[account(
+        mut,
+        seeds = [b"treasury", vault.key().as_ref()],
+        bump = vault.treasury_bump,
+    )]
+    pub vault_treasury : Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        constraint = creator_usdc.owner == vault.authority @InsuranceError::Unauthorised,
+        constraint = creator_usdc.mint == usdc_mint.key() @InsuranceError::InvalidMint
+    )]
+    pub creator_usdc : Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub creator: Signer<'info>,
+
+    pub usdc_mint:Account<'info,Mint>,
+
+    pub token_program: Program<'info, Token>
+}
+
 // EVENTS
 #[event]
 pub struct VaultCreated {
@@ -582,4 +743,18 @@ pub struct ClaimSettled{
     pub payout_amount: u64,
     pub oracle_value: i64,
     pub timestamp: i64,
+}
+
+#[event]
+pub struct LiquidityDeposited{
+    pub vault : Pubkey,
+    pub creator : Pubkey,
+    pub deposit_amount : u64,
+    pub total_liquidity: u64
+}
+
+#[event]
+pub struct LiquidityWithdrawnAndVaultPaused{
+    pub vault: Pubkey,
+    pub creator: Pubkey,
 }

@@ -3,7 +3,7 @@ import * as sb from "@switchboard-xyz/on-demand";
 import { OracleQuote } from "@switchboard-xyz/on-demand";
 import { FeedHash, OracleJob } from "@switchboard-xyz/common";
 import { x402Client, x402HTTPClient } from "@x402/fetch";
-import { registerExactSvmScheme } from "@x402/svm/exact/client";
+import { registerExactSvmScheme } from "@x402/svm/dist/cjs/exact/client";
 import { toClientSvmSigner } from "@x402/svm";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
@@ -16,7 +16,7 @@ import {
 
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
+import { Insure } from "../../../insure/target/types/insure";
 
 
 
@@ -241,7 +241,7 @@ async function derivex402Signature(
 }
 
 
-function buildOracleFeed(oracleValue: value) {
+function buildOracleFeed(oracleValue: number) {
   return {
     name: "AI Claim Verification Result",
     minJobResponses: 1,
@@ -263,9 +263,10 @@ function buildOracleFeed(oracleValue: value) {
 
 
 async function buildSettleClaimIx(
-  program: Program,
+  program: Program<Insure>,
   claimPubkey: PublicKey,
   vaultPubkey: PublicKey,
+  policyPubkey: PublicKey,
   quoteAccount: PublicKey,
   claimant: PublicKey,
   usdcMint: PublicKey
@@ -282,20 +283,21 @@ async function buildSettleClaimIx(
 
   return await program.methods
     .settleClaim()
-    .accounts({
+    .accountsStrict({
       claim: claimPubkey,
+      policy: policyPubkey,
       vault: vaultPubkey,
       quoteAccount: quoteAccount,
       vaultTreasury: vaultTreasury,
       claimantUsdc: claimantUsdc,
       usdcMint: usdcMint,
-      tokenProgram: TOKEN_PROGRAM_ID
+      tokenProgram: TOKEN_PROGRAM_ID,
     })
     .instruction();
 }
 
 export async function resolveClaimOracle(
-  program: Program,
+  program: Program<Insure>,
   keypair: Keypair,
   connection: Connection,
   claimPubkey: PublicKey,
@@ -346,8 +348,6 @@ export async function resolveClaimOracle(
   const oracleValue = aiVerdict.verdict ? 1 : 0;
 
   console.log("Deriving x402 signature...");
-
-  console.log("Deriving x402 signature...");
   const paymentSignature = await derivex402Signature(keypair, probeUrl);
   
   console.log("Settting up Switchboard...");
@@ -378,13 +378,14 @@ export async function resolveClaimOracle(
   );
 
 
-
+  const [policyPubkey] = PublicKey.findProgramAddressSync([Buffer.from("policy"),vaultPubkey.toBuffer(),claimant.toBuffer()], program.programId);
   console.log("Building settle_claim instruction...");
 
   const settleClaimIx = await buildSettleClaimIx(
     program,
     claimPubkey,
     vaultPubkey,
+    policyPubkey,
     quoteAccount,
     claimant,
     usdcMint

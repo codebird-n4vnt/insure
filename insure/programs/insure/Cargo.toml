@@ -14,7 +14,7 @@ cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
@@ -22,7 +22,7 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = {version = "1.0.0", features=["init-if-needed"]} 
-anchor-spl = "1.0.2"
+anchor-spl = {version = "1.0.0"}
 switchboard-on-demand = "0.12.1"
 
 [dev-dependencies]
@@ -31,6 +31,11 @@ solana-message = "3.0.1"
 solana-transaction = "3.0.2"
 solana-signer = "3.0.0"
 solana-keypair = "3.0.1"
+solana-rent             = "3.0"
+solana-clock            = "3.0"
+solana-system-interface = { version = "2.0", features = ["bincode"] }
+solana-program-pack     = "3.0"
+spl-token               = { version = "6", features = ["no-entrypoint"] }
 
 
 [lints.rust]
