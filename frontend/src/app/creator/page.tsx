@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { AnchorProvider, BN } from '@coral-xyz/anchor';
-import { getAssociatedTokenAddress } from '@solana/spl-token';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import { CloudRain, Plane, Plus, ArrowRight, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import {
-  getProgram, USDC_MINT, vaultPDA, toUSDC,
-} from '@/lib/anchor';
+  getProgram, USDC_MINT, vaultPDA, vaultTreasuryPDA, toUSDC,
+} from '../../lib/anchor';
 
 type TriggerType = 'Weather' | 'FlightDelay';
 type Step = 'form' | 'loading' | 'done' | 'error';
@@ -61,6 +62,7 @@ export default function CreatorPage() {
       }
 
       const triggerTypeArg = triggerType === 'Weather' ? { weather: {} } : { flightDelay: {} };
+      const [treasury] = vaultTreasuryPDA(vaultKey);
       const creatorUsdc = await getAssociatedTokenAddress(USDC_MINT, publicKey);
 
       await program.methods
@@ -76,18 +78,26 @@ export default function CreatorPage() {
           new BN(toUnix(vaultExpiry)),
           parseInt(creatorFeeBps)
         )
-        .accounts({
+        .accountsStrict({
           authority: publicKey,
+          vault: vaultKey,
+          vaultTreasury: treasury,
           usdcMint: USDC_MINT,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          rent: SYSVAR_RENT_PUBKEY,
         })
         .rpc();
 
       const depositTx = await program.methods
         .depositLiquidity(toUSDC(parseFloat(depositAmount)))
-        .accounts({
+        .accountsStrict({
+          vault: vaultKey,
+          vaultTreasury: treasury,
           creatorUsdc,
           creator: publicKey,
           usdcMint: USDC_MINT,
+          tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
 
