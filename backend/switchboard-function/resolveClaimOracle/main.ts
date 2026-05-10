@@ -3,7 +3,7 @@ import * as sb from "@switchboard-xyz/on-demand";
 import { OracleQuote } from "@switchboard-xyz/on-demand";
 import { FeedHash, OracleJob } from "@switchboard-xyz/common";
 import { x402Client, x402HTTPClient } from "@x402/fetch";
-import { registerExactSvmScheme } from "@x402/svm/exact/client";
+import { registerExactSvmScheme } from "@x402/svm";
 import { toClientSvmSigner } from "@x402/svm";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
@@ -16,7 +16,7 @@ import {
 
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Insure } from "../../../insure/target/types/insure";
+import { Insure } from "../../types/insure";
 
 
 

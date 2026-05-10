@@ -1,5 +1,5 @@
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
-import { resolveClaimOracle } from "../switchboard-function/resolveClaimOracle.ts/main";
+import { resolveClaimOracle } from "../switchboard-function/resolveClaimOracle/main";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 // import type {Insure} from "../../insure/target/types/insure"
 const USDC_MINT = process.env.USDC_MINT_ADDRESS;
