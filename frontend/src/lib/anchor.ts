@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
-import IDL from "../../../insure/target/idl/insure.json";
-import type {Insure} from "../../../insure/target/types/insure"
+import IDL from "../../idl/insure.json";
+import type {Insure} from "../../idl/insure.ts"
 
 export const PROGRAM_ID = new PublicKey("8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw");
 export const USDC_MINT = new PublicKey(
