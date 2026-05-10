@@ -69,7 +69,8 @@ export default function VaultDetailPage() {
   const [flightDate, setFlightDate] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
 
-  const subscribeStep: 1 | 2 | null = policy === null ? null : (!policy.isSubscribed ? 1 : 2);
+  // subscribeStep is no longer needed: subscribe() sets isSubscribed=true immediately.
+  // State is now determined by: policy===null | !hasPaidPremium | isFullyActive
 
   const refreshPolicy = async (program: any, vaultKey: PublicKey) => {
     if (!publicKey) return;
@@ -315,7 +316,12 @@ export default function VaultDetailPage() {
 
   const type = triggerTypeLabel(vault.triggerType);
   const isWeather = type === 'Weather';
-  const isFullyActive = policy?.isSubscribed ?? false;
+  const nowSec = Math.floor(Date.now() / 1000);
+  // subscribe() sets isSubscribed=true & personalCoverageEnd=0;
+  // pay_premium() sets personalCoverageEnd = vault.coverageStart + 30d (> 0).
+  // So hasPaidPremium distinguishes the two states.
+  const hasPaidPremium = (policy?.personalCoverageEnd?.toNumber() ?? 0) > 0;
+  const isFullyActive = (policy?.isSubscribed ?? false) && hasPaidPremium;
 
   return (
     <div className="min-h-screen px-8 py-24">
@@ -326,21 +332,34 @@ export default function VaultDetailPage() {
 
         {/* Header */}
         <div className="bg-on-background rounded-[16px] p-12 text-white mb-8 relative overflow-hidden">
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start gap-8">
-            <div>
-              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 text-[12px] font-bold tracking-[0.1em] uppercase ${
-                isWeather ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-container/40 text-on-tertiary-container'
-              }`}>
-                {isWeather ? <CloudRain className="w-4 h-4" /> : <Plane className="w-4 h-4" />}
-                {isWeather ? 'Crop Failure Vault' : 'Flight Delay Vault'}
+          <div className="relative z-10">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
+              <div>
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 text-[12px] font-bold tracking-[0.1em] uppercase ${
+                  isWeather ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-container/40 text-on-tertiary-container'
+                }`}>
+                  {isWeather ? <CloudRain className="w-4 h-4" /> : <Plane className="w-4 h-4" />}
+                  {isWeather ? 'Crop Failure Vault' : 'Flight Delay Vault'}
+                </div>
+                <h1 className="text-[36px] font-bold mb-2">Insurance Vault</h1>
+                <p className="text-white/60 text-[14px] font-mono break-all">{pubkey}</p>
+                <p className="text-white/40 text-[12px] mt-1">Vault ID: {vault.vaultId?.toString() ?? '—'}</p>
               </div>
-              <h1 className="text-[36px] font-bold mb-2">Insurance Vault</h1>
-              <p className="text-white/60 text-[14px] font-mono break-all">{pubkey}</p>
-              <p className="text-white/40 text-[12px] mt-1">Vault ID: {vault.vaultId?.toString() ?? '—'}</p>
             </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-white/60 text-[12px] font-bold tracking-[0.1em] uppercase mb-1">Coverage Ends</p>
-              <p className="text-[24px] font-bold">{formatDate(vault.coverageEnd.toNumber())}</p>
+            {/* Time windows grid */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {[
+                { label: 'Subscription Opens',  value: formatDate(vault.subscriptionStart.toNumber()) },
+                { label: 'Subscription Closes', value: formatDate(vault.subscriptionEnd.toNumber()) },
+                { label: 'Coverage Starts',     value: formatDate(vault.coverageStart.toNumber()) },
+                { label: 'Coverage Ends',       value: formatDate(vault.coverageEnd.toNumber()) },
+                { label: 'Vault Expiry',        value: formatDate(vault.vaultExpiry.toNumber()) },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="text-white/50 text-[10px] font-bold tracking-[0.1em] uppercase mb-1">{label}</p>
+                  <p className="text-white text-[14px] font-semibold">{value}</p>
+                </div>
+              ))}
             </div>
           </div>
           <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-white/5 rounded-full" />
@@ -425,7 +444,13 @@ export default function VaultDetailPage() {
                 <CheckCircle className="w-8 h-8 text-green-500" />
                 <div>
                   <h3 className="text-[20px] font-bold text-on-background">Coverage Active</h3>
-                  <p className="text-on-surface-variant">Expires {formatDate(policy.personalCoverageEnd.toNumber())}</p>
+                  {hasPaidPremium && (
+                    <p className="text-on-surface-variant">
+                      {policy.personalCoverageEnd.toNumber() > nowSec
+                        ? `Expires ${formatDate(policy.personalCoverageEnd.toNumber())}`
+                        : `Expired ${formatDate(policy.personalCoverageEnd.toNumber())} — renew to continue`}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -489,8 +514,8 @@ export default function VaultDetailPage() {
               )}
             </div>
 
-          ) : subscribeStep === 1 ? (
-            /* ── Step 1 done, pay premium ── */
+          ) : policy !== null && !hasPaidPremium ? (
+            /* ── Subscribed (subscribe() done), but premium not yet paid ── */
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center text-[14px]">1</div>
@@ -502,7 +527,7 @@ export default function VaultDetailPage() {
                 <h3 className="text-[20px] font-bold text-on-background">Pay First Premium</h3>
               </div>
               <p className="text-on-surface-variant mb-8">
-                Your account is registered. Now pay the first premium of <strong>{formatUSDC(vault.premiumAmount)}</strong> USDC to activate coverage.
+                Account registered. Pay the first premium of <strong>{formatUSDC(vault.premiumAmount)}</strong> USDC to activate coverage.
               </p>
               <button
                 onClick={handlePayPremium}

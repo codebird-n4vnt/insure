@@ -109,8 +109,17 @@ export default function MyInsurancePage() {
               const type = triggerTypeLabel(p.vaultAccount.triggerType);
               const isWeather = type === 'Weather';
               const now = Math.floor(Date.now() / 1000);
-              const coverageEnd = p.account.personalCoverageEnd.toNumber();
-              const isActive = coverageEnd > now && p.account.isSubscribed;
+              const personalCoverageEnd = p.account.personalCoverageEnd.toNumber();
+              const hasPremium = personalCoverageEnd > 0;
+              const isActive = hasPremium && personalCoverageEnd > now;
+              // Subscribed (subscribe() called) but premium not yet paid
+              const isRegistered = p.account.isSubscribed && !hasPremium;
+              const coverageStatus = isActive ? 'Active' : isRegistered ? 'Registered' : 'Expired';
+              const badgeClasses = isActive
+                ? 'bg-green-100 text-green-700'
+                : isRegistered
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-surface-container text-on-surface-variant';
               const showClaims = expanded[p.publicKey] ?? false;
 
               return (
@@ -124,8 +133,8 @@ export default function MyInsurancePage() {
                       <div>
                         <div className="flex items-center gap-3 mb-1">
                           <h3 className="text-[20px] font-bold text-on-background">{isWeather ? 'Crop Failure' : 'Flight Delay'} Policy</h3>
-                          <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-[0.05em] uppercase ${isActive ? 'bg-green-100 text-green-700' : 'bg-surface-container text-on-surface-variant'}`}>
-                            {isActive ? 'Active' : 'Expired'}
+                          <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-[0.05em] uppercase ${badgeClasses}`}>
+                            {coverageStatus}
                           </span>
                         </div>
                         <p className="text-[13px] font-mono text-outline truncate max-w-[320px]">
@@ -140,7 +149,9 @@ export default function MyInsurancePage() {
                       </div>
                       <div>
                         <p className="text-[11px] font-bold tracking-[0.1em] uppercase text-outline mb-1">Coverage Until</p>
-                        <p className="text-[18px] font-bold text-on-background">{formatDate(coverageEnd)}</p>
+                        <p className="text-[18px] font-bold text-on-background">
+                          {hasPremium ? formatDate(personalCoverageEnd) : '— Pay premium to activate'}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[11px] font-bold tracking-[0.1em] uppercase text-outline mb-1">Claims Filed</p>
