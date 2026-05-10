@@ -1,0 +1,1404 @@
+{
+  "address": "8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw",
+  "metadata": {
+    "name": "insure",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "creator_withdraw",
+      "discriminator": [
+        92,
+        117,
+        206,
+        254,
+        174,
+        108,
+        37,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator_usdc",
+          "writable": true
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "deposit_liquidity",
+      "discriminator": [
+        245,
+        99,
+        59,
+        25,
+        151,
+        71,
+        233,
+        249
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator_usdc",
+          "writable": true
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "deposit_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_vault",
+      "discriminator": [
+        48,
+        191,
+        163,
+        44,
+        71,
+        129,
+        63,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "trigger_type",
+          "type": {
+            "defined": {
+              "name": "TriggerType"
+            }
+          }
+        },
+        {
+          "name": "trigger_threshold",
+          "type": "i64"
+        },
+        {
+          "name": "premium_amount",
+          "type": "u64"
+        },
+        {
+          "name": "coverage_amount",
+          "type": "u64"
+        },
+        {
+          "name": "subscription_start",
+          "type": "i64"
+        },
+        {
+          "name": "subscription_end",
+          "type": "i64"
+        },
+        {
+          "name": "coverage_start",
+          "type": "i64"
+        },
+        {
+          "name": "coverage_end",
+          "type": "i64"
+        },
+        {
+          "name": "vault_expiry",
+          "type": "i64"
+        },
+        {
+          "name": "creator_fee_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "pay_premium",
+      "discriminator": [
+        156,
+        253,
+        113,
+        97,
+        167,
+        54,
+        253,
+        245
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner_usdc",
+          "writable": true
+        },
+        {
+          "name": "vault_treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator_usdc",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "raise_claim",
+      "discriminator": [
+        82,
+        27,
+        166,
+        20,
+        46,
+        132,
+        162,
+        69
+      ],
+      "accounts": [
+        {
+          "name": "claimant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "claimant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "claimant"
+              },
+              {
+                "kind": "account",
+                "path": "policy.claim_count",
+                "account": "PolicyHolder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claimant_usdc",
+          "writable": true
+        },
+        {
+          "name": "vault_treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "claim_data",
+          "type": {
+            "defined": {
+              "name": "ClaimData"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "settle_claim",
+      "discriminator": [
+        205,
+        203,
+        21,
+        66,
+        255,
+        231,
+        209,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "claim",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "claim.claimant",
+                "account": "Claim"
+              },
+              {
+                "kind": "account",
+                "path": "claim.claim_number",
+                "account": "Claim"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "policy.owner",
+                "account": "PolicyHolder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claimant_usdc",
+          "writable": true
+        },
+        {
+          "name": "quote_account"
+        },
+        {
+          "name": "vault_treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "subscribe",
+      "discriminator": [
+        254,
+        28,
+        191,
+        138,
+        156,
+        179,
+        183,
+        53
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Claim",
+      "discriminator": [
+        155,
+        70,
+        22,
+        176,
+        123,
+        215,
+        246,
+        102
+      ]
+    },
+    {
+      "name": "PolicyHolder",
+      "discriminator": [
+        100,
+        23,
+        218,
+        127,
+        87,
+        62,
+        52,
+        135
+      ]
+    },
+    {
+      "name": "Vault",
+      "discriminator": [
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "ClaimFiled",
+      "discriminator": [
+        78,
+        228,
+        214,
+        247,
+        197,
+        67,
+        130,
+        19
+      ]
+    },
+    {
+      "name": "ClaimSettled",
+      "discriminator": [
+        144,
+        220,
+        131,
+        115,
+        8,
+        187,
+        224,
+        236
+      ]
+    },
+    {
+      "name": "LiquidityDeposited",
+      "discriminator": [
+        218,
+        155,
+        74,
+        193,
+        59,
+        66,
+        94,
+        122
+      ]
+    },
+    {
+      "name": "LiquidityWithdrawnAndVaultPaused",
+      "discriminator": [
+        9,
+        247,
+        193,
+        85,
+        15,
+        144,
+        249,
+        40
+      ]
+    },
+    {
+      "name": "PremiumPaid",
+      "discriminator": [
+        159,
+        75,
+        105,
+        27,
+        181,
+        14,
+        243,
+        40
+      ]
+    },
+    {
+      "name": "VaultCreated",
+      "discriminator": [
+        117,
+        25,
+        120,
+        254,
+        75,
+        236,
+        78,
+        115
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidTimeWindow",
+      "msg": "The time you entered is invalid!"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidAmount",
+      "msg": "Invalid amount!"
+    },
+    {
+      "code": 6002,
+      "name": "VaultPaused",
+      "msg": "Vault is paused"
+    },
+    {
+      "code": 6003,
+      "name": "SubscriptionClosed",
+      "msg": "Subscription is closed right now"
+    },
+    {
+      "code": 6004,
+      "name": "AlreadySubscribed",
+      "msg": "You already have subscribed for this insurance"
+    },
+    {
+      "code": 6005,
+      "name": "InsufficientLiquidity",
+      "msg": "Insufficient liquidity in the vault, please check after after hours"
+    },
+    {
+      "code": 6006,
+      "name": "Unauthorised",
+      "msg": "Unauthorised access"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidMint",
+      "msg": "Provided USDC mint address is different from what was stored"
+    },
+    {
+      "code": 6008,
+      "name": "NotSubscribed",
+      "msg": "Not subscribed"
+    },
+    {
+      "code": 6009,
+      "name": "OutsideCoverageWindow",
+      "msg": "You are trying to pay premium outside the coverage window"
+    },
+    {
+      "code": 6010,
+      "name": "CoverageLapsed",
+      "msg": "Your insurance coverage is lapsed, please buy any other premium"
+    },
+    {
+      "code": 6011,
+      "name": "ClaimApproved",
+      "msg": "This claim was already approved"
+    },
+    {
+      "code": 6012,
+      "name": "ClaimRejected",
+      "msg": "This claim was rejected"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidOracleResult",
+      "msg": "Invalid oracle result"
+    },
+    {
+      "code": 6014,
+      "name": "VaultExpired",
+      "msg": "Vault is expired"
+    },
+    {
+      "code": 6015,
+      "name": "VaultNotExpired",
+      "msg": "Vault money can only be withdrawn after the vault has expired"
+    }
+  ],
+  "types": [
+    {
+      "name": "Claim",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "claimant",
+            "type": "pubkey"
+          },
+          {
+            "name": "claim_number",
+            "type": "u64"
+          },
+          {
+            "name": "filed_at",
+            "type": "i64"
+          },
+          {
+            "name": "settled_at",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "ClaimStatus"
+              }
+            }
+          },
+          {
+            "name": "payout_amount",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "claim_data",
+            "type": {
+              "defined": {
+                "name": "ClaimData"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClaimData",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Weather",
+            "fields": [
+              {
+                "name": "latitude",
+                "type": "f64"
+              },
+              {
+                "name": "longitude",
+                "type": "f64"
+              }
+            ]
+          },
+          {
+            "name": "FlightDelay",
+            "fields": [
+              {
+                "name": "flight_number",
+                "type": "string"
+              },
+              {
+                "name": "flight_date",
+                "type": "i64"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClaimFiled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "claim",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "claimant",
+            "type": "pubkey"
+          },
+          {
+            "name": "claim_number",
+            "type": "u64"
+          },
+          {
+            "name": "filed_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClaimSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "claim",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "claimant",
+            "type": "pubkey"
+          },
+          {
+            "name": "verdict",
+            "type": "bool"
+          },
+          {
+            "name": "payout_amount",
+            "type": "u64"
+          },
+          {
+            "name": "oracle_value",
+            "type": "i64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClaimStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Approved"
+          },
+          {
+            "name": "Rejected"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityDeposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "deposit_amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_liquidity",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityWithdrawnAndVaultPaused",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PolicyHolder",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_premiums_paid",
+            "type": "u64"
+          },
+          {
+            "name": "personal_coverage_end",
+            "type": "i64"
+          },
+          {
+            "name": "is_subscribed",
+            "type": "bool"
+          },
+          {
+            "name": "claim_count",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PremiumPaid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "policy_holder",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_paid",
+            "type": "u64"
+          },
+          {
+            "name": "personal_coverage_end",
+            "type": "i64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TriggerType",
+      "repr": {
+        "kind": "rust"
+      },
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Weather"
+          },
+          {
+            "name": "FlightDelay"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "trigger_type",
+            "type": {
+              "defined": {
+                "name": "TriggerType"
+              }
+            }
+          },
+          {
+            "name": "trigger_threshold",
+            "type": "i64"
+          },
+          {
+            "name": "premium_amount",
+            "type": "u64"
+          },
+          {
+            "name": "coverage_amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_premiums_collected",
+            "type": "u64"
+          },
+          {
+            "name": "total_claims_paid",
+            "type": "u64"
+          },
+          {
+            "name": "creator_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "total_liquidity",
+            "type": "u64"
+          },
+          {
+            "name": "is_paused",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "subscription_start",
+            "type": "i64"
+          },
+          {
+            "name": "subscription_end",
+            "type": "i64"
+          },
+          {
+            "name": "coverage_start",
+            "type": "i64"
+          },
+          {
+            "name": "coverage_end",
+            "type": "i64"
+          },
+          {
+            "name": "vault_expiry",
+            "type": "i64"
+          },
+          {
+            "name": "total_policies",
+            "type": "u64"
+          },
+          {
+            "name": "total_claims",
+            "type": "u64"
+          },
+          {
+            "name": "treasury_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "trigger_type",
+            "type": {
+              "defined": {
+                "name": "TriggerType"
+              }
+            }
+          },
+          {
+            "name": "coverage_start",
+            "type": "i64"
+          },
+          {
+            "name": "coverage_end",
+            "type": "i64"
+          },
+          {
+            "name": "premium_amount",
+            "type": "u64"
+          },
+          {
+            "name": "coverage_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -3,8 +3,8 @@ import {Connection, Keypair,PublicKey} from "@solana/web3.js";
 import {AnchorProvider, Program, Wallet} from "@coral-xyz/anchor";
 import {createHelius} from "helius-sdk";
 import bs58 from "bs58"
-import IDL from "../insure/target/idl/insure.json";
-import type {Insure} from "../insure/target/types/insure.ts";
+import IDL from "./types/insure.json";
+import type {Insure} from "./types/insure.ts";
 
 export const PROGRAM_ID = new PublicKey("8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw");
 export const USDC_MINT = new PublicKey(process.env.USDC_MINT_ADDRESS!);
