@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { AnchorProvider } from '@coral-xyz/anchor';
-import { Shield, CloudRain, Plane, Loader2 } from 'lucide-react';
-import { getProgram, formatUSDC, formatDate, triggerTypeLabel } from '@/lib/anchor';
+import { AnchorProvider, BN } from '@coral-xyz/anchor';
+import { Shield, CloudRain, Plane, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { getProgram, formatUSDC, formatDate, triggerTypeLabel, claimPDA, claimStatusLabel, claimDataSummary } from '@/lib/anchor';
+import { PublicKey } from '@solana/web3.js';
 
-type PolicyEntry = { publicKey: string; account: any; vaultAccount: any };
+type ClaimEntry = { key: string; account: any };
+type PolicyEntry = { publicKey: string; account: any; vaultAccount: any; claims: ClaimEntry[] };
 
 export default function MyInsurancePage() {
   const { connection } = useConnection();
@@ -15,6 +17,7 @@ export default function MyInsurancePage() {
 
   const [policies, setPolicies] = useState<PolicyEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!publicKey) { setLoading(false); return; }
@@ -27,18 +30,35 @@ export default function MyInsurancePage() {
           { commitment: 'confirmed' }
         );
         const program = getProgram(provider);
+
+        // Fetch all PolicyHolder accounts owned by this user
+        // offset 8 (discriminator) + 32 (vault pubkey) = offset 40 for owner field
         const userPolicies = await program.account.policyHolder.all([
           { memcmp: { offset: 8 + 32, bytes: publicKey!.toBase58() } },
         ]);
-        const withVaults = await Promise.all(
+
+        const withVaultsAndClaims = await Promise.all(
           userPolicies.map(async (p) => {
             try {
               const vaultAccount = await program.account.vault.fetch(p.account.vault);
-              return { publicKey: p.publicKey.toBase58(), account: p.account, vaultAccount };
+              const claimCount: number = p.account.claimCount.toNumber();
+              const vaultKey = p.account.vault as PublicKey;
+
+              // Fetch each claim PDA for this user + vault
+              const claims: ClaimEntry[] = [];
+              for (let i = 0; i < claimCount; i++) {
+                try {
+                  const [claimKey] = claimPDA(vaultKey, publicKey!, new BN(i));
+                  const acc = await program.account.claim.fetch(claimKey);
+                  claims.push({ key: claimKey.toBase58(), account: acc });
+                } catch { /* skip missing */ }
+              }
+
+              return { publicKey: p.publicKey.toBase58(), account: p.account, vaultAccount, claims };
             } catch { return null; }
           })
         );
-        setPolicies(withVaults.filter(Boolean) as PolicyEntry[]);
+        setPolicies(withVaultsAndClaims.filter(Boolean) as PolicyEntry[]);
       } catch (err) {
         console.error('Failed to load policies:', err);
       }
@@ -46,6 +66,8 @@ export default function MyInsurancePage() {
     }
     load();
   }, [publicKey, connection]);
+
+  const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   if (!publicKey) {
     return (
@@ -89,9 +111,11 @@ export default function MyInsurancePage() {
               const now = Math.floor(Date.now() / 1000);
               const coverageEnd = p.account.personalCoverageEnd.toNumber();
               const isActive = coverageEnd > now && p.account.isSubscribed;
+              const showClaims = expanded[p.publicKey] ?? false;
 
               return (
                 <div key={p.publicKey} className="bg-surface-container-lowest/80 backdrop-blur-md rounded-[16px] floating-shadow border border-white/50 p-[32px]">
+                  {/* Policy header row */}
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div className="flex items-start gap-6">
                       <div className={`p-4 rounded-[12px] flex-shrink-0 ${isWeather ? 'bg-secondary-container' : 'bg-tertiary-container/40'}`}>
@@ -124,14 +148,58 @@ export default function MyInsurancePage() {
                       </div>
                     </div>
                   </div>
-                  {isActive && (
-                    <div className="mt-6 pt-6 border-t border-outline-variant flex gap-4">
-                      <Link href={`/vaults/${p.account.vault.toBase58()}`} className="bg-primary text-on-primary px-6 py-3 rounded-full text-[14px] font-bold electric-glow hover:scale-105 transition-transform">
-                        Raise a Claim
-                      </Link>
-                      <Link href={`/vaults/${p.account.vault.toBase58()}`} className="border border-outline-variant text-on-surface-variant px-6 py-3 rounded-full text-[14px] font-bold hover:border-primary/30 transition-all">
-                        View Vault
-                      </Link>
+
+                  {/* Actions + Claims toggle */}
+                  <div className="mt-6 pt-6 border-t border-outline-variant flex flex-wrap gap-4 items-center">
+                    <Link href={`/vaults/${p.account.vault.toBase58()}`} className="bg-primary text-on-primary px-6 py-3 rounded-full text-[14px] font-bold electric-glow hover:scale-105 transition-transform">
+                      {isActive ? 'Raise a Claim' : 'View Vault'}
+                    </Link>
+                    <Link href={`/vaults/${p.account.vault.toBase58()}`} className="border border-outline-variant text-on-surface-variant px-6 py-3 rounded-full text-[14px] font-bold hover:border-primary/30 transition-all">
+                      View Vault
+                    </Link>
+                    {p.claims.length > 0 && (
+                      <button
+                        onClick={() => toggle(p.publicKey)}
+                        className="ml-auto flex items-center gap-2 text-[13px] font-bold text-primary hover:underline"
+                      >
+                        {showClaims ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        {showClaims ? 'Hide' : 'Show'} Claim History ({p.claims.length})
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Claim history */}
+                  {showClaims && p.claims.length > 0 && (
+                    <div className="mt-6 space-y-3">
+                      {p.claims.map(({ key, account: c }) => {
+                        const { label, variant } = claimStatusLabel(c.status);
+                        const statusClasses = {
+                          pending:  'bg-amber-100 text-amber-700',
+                          approved: 'bg-green-100 text-green-700',
+                          rejected: 'bg-red-100 text-red-700',
+                        }[variant];
+                        return (
+                          <div key={key} className="bg-surface-container-low rounded-[10px] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <span className="text-[12px] font-bold text-outline">#{c.claimNumber.toString()}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase ${statusClasses}`}>{label}</span>
+                              <span className="text-[13px] text-on-background">{claimDataSummary(c.claimData)}</span>
+                            </div>
+                            <div className="text-right text-[12px] text-on-surface-variant">
+                              <div>Filed {formatDate(c.filedAt.toNumber())}</div>
+                              {variant === 'approved' && (
+                                <div className="text-green-700 font-semibold">Paid out {formatUSDC(c.payoutAmount)}</div>
+                              )}
+                              {variant === 'pending' && (
+                                <div className="text-amber-600">Awaiting oracle settlement</div>
+                              )}
+                              {variant === 'rejected' && (
+                                <div className="text-red-600">Rejected by oracle</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

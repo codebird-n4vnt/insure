@@ -11,6 +11,7 @@ import Link from 'next/link';
 import {
   getProgram, USDC_MINT, vaultTreasuryPDA, policyPDA, claimPDA,
   formatUSDC, formatDate, triggerTypeLabel, toUSDC,
+  claimStatusLabel, claimDataSummary,
 } from '@/lib/anchor';
 
 /** Extract only the human-readable message from an Anchor / RPC error. */
@@ -44,6 +45,7 @@ export default function VaultDetailPage() {
 
   const [vault, setVault] = useState<any>(null);
   const [policy, setPolicy] = useState<any>(null);
+  const [claims, setClaims] = useState<{ key: string; account: any }[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Per-action tx state
@@ -82,6 +84,19 @@ export default function VaultDetailPage() {
     }
   };
 
+  const fetchClaims = async (program: any, vaultKey: PublicKey, claimCount: number) => {
+    if (!publicKey || claimCount === 0) { setClaims([]); return; }
+    const fetched: { key: string; account: any }[] = [];
+    for (let i = 0; i < claimCount; i++) {
+      try {
+        const [claimKey] = claimPDA(vaultKey, publicKey, new BN(i));
+        const acc = await program.account.claim.fetch(claimKey);
+        fetched.push({ key: claimKey.toBase58(), account: acc });
+      } catch { /* skip missing */ }
+    }
+    setClaims(fetched);
+  };
+
   useEffect(() => {
     async function load() {
       if (!pubkey) return;
@@ -103,7 +118,10 @@ export default function VaultDetailPage() {
         const vaultKey = new PublicKey(pubkey);
         const vaultData = await program.account.vault.fetch(vaultKey);
         setVault(vaultData);
-        await refreshPolicy(program, vaultKey);
+        const policyData = await refreshPolicy(program, vaultKey);
+        if (policyData) {
+          await fetchClaims(program, vaultKey, policyData.claimCount.toNumber());
+        }
       } catch (err) {
         console.error(err);
       }
@@ -231,7 +249,11 @@ export default function VaultDetailPage() {
       setTxSig(sig);
       setClaimStatus('success');
       setShowClaimForm(false);
-      setPolicy(await refreshPolicy(program, vaultKey));
+      const updatedPolicy = await refreshPolicy(program, vaultKey);
+      setPolicy(updatedPolicy);
+      if (updatedPolicy) {
+        await fetchClaims(program, vaultKey, updatedPolicy.claimCount.toNumber());
+      }
     } catch (err: any) {
       setClaimError(extractErrorMessage(err));
       setClaimStatus('error');
@@ -521,6 +543,62 @@ export default function VaultDetailPage() {
             </div>
           )}
         </div>
+
+        {/* ── My Claims ─────────────────────────────────────────────────── */}
+        {publicKey && claims.length > 0 && (
+          <div className="mt-8 bg-surface-container-lowest/80 backdrop-blur-md rounded-[16px] p-[40px] floating-shadow border border-white/50">
+            <h3 className="text-[20px] font-bold text-on-background mb-6">My Claims</h3>
+            <div className="space-y-4">
+              {claims.map(({ key, account }) => {
+                const { label, variant } = claimStatusLabel(account.status);
+                const statusClasses = {
+                  pending:  'bg-amber-100 text-amber-700',
+                  approved: 'bg-green-100 text-green-700',
+                  rejected: 'bg-red-100 text-red-700',
+                }[variant];
+
+                return (
+                  <div key={key} className="border border-outline-variant rounded-[12px] p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[13px] font-bold text-outline">
+                          Claim #{account.claimNumber.toString()}
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${statusClasses}`}>
+                          {label}
+                        </span>
+                      </div>
+                      <span className="text-[12px] text-on-surface-variant">
+                        Filed {formatDate(account.filedAt.toNumber())}
+                      </span>
+                    </div>
+
+                    <p className="text-[14px] text-on-background font-medium mb-2">
+                      {claimDataSummary(account.claimData)}
+                    </p>
+
+                    {variant === 'pending' && (
+                      <p className="text-[13px] text-on-surface-variant flex items-center gap-2">
+                        <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
+                        Under oracle review — the Switchboard keeper will settle this claim automatically.
+                      </p>
+                    )}
+                    {variant === 'approved' && (
+                      <p className="text-[13px] text-green-700 font-semibold">
+                        ✓ Payout of {formatUSDC(account.payoutAmount)} sent to your wallet on {formatDate(account.settledAt.toNumber())}
+                      </p>
+                    )}
+                    {variant === 'rejected' && (
+                      <p className="text-[13px] text-red-600">
+                        ✗ Claim rejected by oracle on {formatDate(account.settledAt.toNumber())}. Oracle data did not confirm the event.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

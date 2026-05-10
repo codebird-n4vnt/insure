@@ -84,3 +84,23 @@ export function triggerTypeLabel(triggerType: any): "Weather" | "FlightDelay" {
   if ("weather" in triggerType) return "Weather";
   return "FlightDelay";
 }
+
+export type ClaimStatusVariant = "pending" | "approved" | "rejected";
+
+export function claimStatusLabel(status: any): { label: string; variant: ClaimStatusVariant } {
+  if ("approved" in status) return { label: "Approved", variant: "approved" };
+  if ("rejected" in status) return { label: "Rejected", variant: "rejected" };
+  return { label: "Pending", variant: "pending" };
+}
+
+export function claimDataSummary(claimData: any): string {
+  if ("weather" in claimData) {
+    const { latitude, longitude } = claimData.weather;
+    return `Weather at ${latitude.toFixed(4)}°, ${longitude.toFixed(4)}°`;
+  }
+  if ("flightDelay" in claimData) {
+    const { flightNumber } = claimData.flightDelay;
+    return `Flight delay — ${flightNumber}`;
+  }
+  return "Unknown claim type";
+}
