@@ -1,5 +1,5 @@
 {
-  "address": "8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw",
+  "address": "5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF",
   "metadata": {
     "name": "insure",
     "version": "0.1.0",
@@ -38,6 +38,11 @@
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "Vault"
               }
             ]
@@ -118,6 +123,11 @@
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "Vault"
               }
             ]
@@ -208,6 +218,10 @@
               {
                 "kind": "account",
                 "path": "authority"
+              },
+              {
+                "kind": "arg",
+                "path": "vault_id"
               }
             ]
           }
@@ -254,6 +268,10 @@
         }
       ],
       "args": [
+        {
+          "name": "vault_id",
+          "type": "u64"
+        },
         {
           "name": "trigger_type",
           "type": {
@@ -331,6 +349,11 @@
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "Vault"
               }
             ]
@@ -447,6 +470,11 @@
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "Vault"
               }
             ]
@@ -626,6 +654,11 @@
                 "kind": "account",
                 "path": "vault.authority",
                 "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "Vault"
               }
             ]
           }
@@ -731,6 +764,11 @@
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "Vault"
               }
             ]
@@ -1352,6 +1390,10 @@
           {
             "name": "treasury_bump",
             "type": "u8"
+          },
+          {
+            "name": "vault_id",
+            "type": "u64"
           }
         ]
       }

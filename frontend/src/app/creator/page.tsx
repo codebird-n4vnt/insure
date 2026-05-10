@@ -13,6 +13,21 @@ import {
 type TriggerType = 'Weather' | 'FlightDelay';
 type Step = 'form' | 'loading' | 'done' | 'error';
 
+/** Extract only the human-readable message from an Anchor / RPC error. */
+function extractErrorMessage(err: any): string {
+  // Anchor program errors carry a logs array — grab the first "Error Message:" line
+  const logs: string[] | undefined = err?.logs ?? err?.transactionError?.logs;
+  if (logs) {
+    for (const line of logs) {
+      const match = line.match(/Error Message: (.+)/);
+      if (match) return match[1];
+    }
+  }
+  // Fallback to the JS error message, but strip anything after a newline
+  const msg: string = err?.message ?? 'Transaction failed';
+  return msg.split('\n')[0];
+}
+
 export default function CreatorPage() {
   const { publicKey, signTransaction, signAllTransactions } = useWallet();
   const { connection } = useConnection();
@@ -29,6 +44,7 @@ export default function CreatorPage() {
   const [coverageStart, setCoverageStart] = useState('');
   const [coverageEnd, setCoverageEnd] = useState('');
   const [vaultExpiry, setVaultExpiry] = useState('');
+  const [vaultId, setVaultId] = useState('0');
 
   const [step, setStep] = useState<Step>('form');
   const [txSig, setTxSig] = useState('');
@@ -48,13 +64,13 @@ export default function CreatorPage() {
         { commitment: 'confirmed' }
       );
       const program = getProgram(provider);
-      const [vaultKey] = vaultPDA(publicKey);
+      const vaultIdBN = new BN(parseInt(vaultId));
+      const [vaultKey] = vaultPDA(publicKey, vaultIdBN);
 
-      // Guard: each authority can only create one vault (PDA is deterministic)
+      // Guard: check if vault already exists
       try {
         await program.account.vault.fetch(vaultKey);
-        // If fetch succeeds, the vault already exists
-        setErrorMsg('You already have a vault. Each wallet can only create one vault.');
+        setErrorMsg(`Vault #${vaultId} already exists for this wallet. Choose a different Vault ID.`);
         setStep('error');
         return;
       } catch {
@@ -67,6 +83,7 @@ export default function CreatorPage() {
 
       await program.methods
         .initializeVault(
+          vaultIdBN,
           triggerTypeArg,
           new BN(parseInt(triggerThreshold)),
           toUSDC(parseFloat(premiumAmount)),
@@ -105,7 +122,7 @@ export default function CreatorPage() {
       setStep('done');
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err?.message ?? 'Transaction failed');
+      setErrorMsg(extractErrorMessage(err));
       setStep('error');
     }
   };
@@ -152,14 +169,20 @@ export default function CreatorPage() {
             </div>
           </div>
 
-          {step === 'error' && (
-            <div className="mb-6 p-4 rounded-[12px] bg-error-container text-on-error-container flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-              <p className="text-[14px]">{errorMsg}</p>
-            </div>
-          )}
-
           <form onSubmit={handleCreate} className="space-y-8">
+            {/* Vault ID */}
+            <div>
+              <label className="block text-[12px] font-bold tracking-[0.1em] uppercase text-on-background mb-2">Vault ID</label>
+              <input
+                type="number" min="0" required value={vaultId}
+                onChange={(e) => setVaultId(e.target.value)} placeholder="0"
+                className="w-full px-6 py-4 rounded-full border border-outline-variant bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary/50 text-on-background"
+              />
+              <p className="text-[12px] text-on-surface-variant mt-2">
+                A unique number per wallet. Each wallet can create multiple vaults by using different IDs.
+              </p>
+            </div>
+
             {/* Trigger Type */}
             <div>
               <label className="block text-[12px] font-bold tracking-[0.1em] uppercase text-on-background mb-4">
@@ -267,7 +290,15 @@ export default function CreatorPage() {
               <p className="text-[12px] text-on-surface-variant mt-2">USDC you deposit as the insurance liquidity pool.</p>
             </div>
 
-            <div className="pt-4">
+            {/* Error — shown just above the submit button */}
+            {step === 'error' && (
+              <div className="flex items-start gap-3 p-4 rounded-[12px] bg-error-container text-on-error-container">
+                <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <p className="text-[14px]">{errorMsg}</p>
+              </div>
+            )}
+
+            <div>
               <button type="submit" disabled={!connected || step === 'loading'}
                 className={`w-full py-5 rounded-full font-bold text-[18px] flex items-center justify-center gap-3 transition-all ${
                   connected ? 'bg-primary text-on-primary electric-glow hover:scale-[1.01]' : 'bg-surface-container text-on-surface-variant cursor-not-allowed'

@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/insure.json`.
  */
 export type Insure = {
-  "address": "8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw",
+  "address": "5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF",
   "metadata": {
     "name": "insure",
     "version": "0.1.0",
@@ -44,6 +44,11 @@ export type Insure = {
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "vault"
               }
             ]
@@ -124,6 +129,11 @@ export type Insure = {
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "vault"
               }
             ]
@@ -214,6 +224,10 @@ export type Insure = {
               {
                 "kind": "account",
                 "path": "authority"
+              },
+              {
+                "kind": "arg",
+                "path": "vaultId"
               }
             ]
           }
@@ -260,6 +274,10 @@ export type Insure = {
         }
       ],
       "args": [
+        {
+          "name": "vaultId",
+          "type": "u64"
+        },
         {
           "name": "triggerType",
           "type": {
@@ -337,6 +355,11 @@ export type Insure = {
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "vault"
               }
             ]
@@ -453,6 +476,11 @@ export type Insure = {
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "vault"
               }
             ]
@@ -632,6 +660,11 @@ export type Insure = {
                 "kind": "account",
                 "path": "vault.authority",
                 "account": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "vault"
               }
             ]
           }
@@ -737,6 +770,11 @@ export type Insure = {
               {
                 "kind": "account",
                 "path": "vault.authority",
+                "account": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
                 "account": "vault"
               }
             ]
@@ -1358,6 +1396,10 @@ export type Insure = {
           {
             "name": "treasuryBump",
             "type": "u8"
+          },
+          {
+            "name": "vaultId",
+            "type": "u64"
           }
         ]
       }

@@ -9,7 +9,7 @@ skip-lint = false
 program = "5DkAk2HYyi7XDXGJpXnZuvEu7n9CLEXEFMNFnTGkjzTo"
 
 [programs.devnet]
-insure = "8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw"
+insure = "5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF"
 
 [provider]
 cluster = "https://devnet.helius-rpc.com/?api-key=61e1ae91-d025-4472-8253-bf12d40d6159"

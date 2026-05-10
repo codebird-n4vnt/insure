@@ -9,7 +9,7 @@ use switchboard_on_demand::PullFeedAccountData;
 pub use error::*;
 pub use state::*;
 
-declare_id!("8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw");
+declare_id!("5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF");
 
 #[program]
 pub mod insure {
@@ -18,6 +18,7 @@ use super::*;
 
     pub fn initialize_vault(
         ctx: Context<Initialize>,
+        vault_id: u64,
         trigger_type: TriggerType,
         trigger_threshold: i64,
         premium_amount: u64,
@@ -76,6 +77,7 @@ use super::*;
         vault.is_paused = false;
         vault.total_policies = 0;
         vault.total_claims = 0;
+        vault.vault_id = vault_id;
 
         emit!(VaultCreated {
             vault: vault.key(),
@@ -309,7 +311,8 @@ use super::*;
         if approved {
             let vault_authority = vault.authority;
             let vault_bump = vault.bump;
-            let seeds = &[b"vault", vault_authority.as_ref(), &[vault_bump]];
+            let vault_id_bytes = vault.vault_id.to_le_bytes();
+            let seeds = &[b"vault", vault_authority.as_ref(), vault_id_bytes.as_ref(), &[vault_bump]];
             let signer_seeds = &[&seeds[..]];
 
 
@@ -407,7 +410,8 @@ use super::*;
 
         let vault_authority = vault.authority;
         let vault_bump = vault.bump;
-        let seeds = &[b"vault", vault_authority.as_ref(), &[vault_bump]];
+        let vault_id_bytes = vault.vault_id.to_le_bytes();
+        let seeds = &[b"vault", vault_authority.as_ref(), vault_id_bytes.as_ref(), &[vault_bump]];
         let signer_seeds = &[&seeds[..]];
         
         let withdrawal_amount = ctx.accounts.vault_treasury.amount;
@@ -440,6 +444,7 @@ use super::*;
 }
 
 #[derive(Accounts)]
+#[instruction(vault_id:u64)]
 pub struct Initialize<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -447,7 +452,7 @@ pub struct Initialize<'info> {
         init,
         payer = authority,
         space = 8 + Vault::INIT_SPACE,
-        seeds = [b"vault", authority.key().as_ref()],
+        seeds = [b"vault", authority.key().as_ref(), &vault_id.to_le_bytes()],
         bump
     )] // first we need to initialize.
     pub vault: Account<'info, Vault>,
@@ -474,7 +479,7 @@ pub struct RaiseClaim<'info> {
     claimant: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"vault", vault.authority.as_ref()],
+        seeds = [b"vault", vault.authority.as_ref(), &vault.vault_id.to_le_bytes()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -529,7 +534,7 @@ pub struct SettleClaim<'info>{
     
     #[account(
         mut,
-        seeds = [b"vault", vault.authority.as_ref()],
+        seeds = [b"vault", vault.authority.as_ref(), &vault.vault_id.to_le_bytes()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -567,7 +572,7 @@ pub struct SettleClaim<'info>{
 pub struct Subscribe<'info> {
     #[account(
         mut,
-        seeds = [b"vault", vault.authority.as_ref()],
+        seeds = [b"vault", vault.authority.as_ref(), &vault.vault_id.to_le_bytes()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -594,7 +599,7 @@ pub struct Subscribe<'info> {
 pub struct PayPremium<'info> {
     #[account(
         mut,
-        seeds=[b"vault", vault.authority.as_ref()],
+        seeds=[b"vault", vault.authority.as_ref(), &vault.vault_id.to_le_bytes()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -645,7 +650,7 @@ pub struct DepositLiquidity<'info>{
 
     #[account(
         mut,
-        seeds = [b"vault", vault.authority.as_ref()],
+        seeds = [b"vault", vault.authority.as_ref(), &vault.vault_id.to_le_bytes()],
         bump = vault.bump,
         constraint = creator.key() == vault.authority @InsuranceError::Unauthorised,
     )]
@@ -676,7 +681,7 @@ pub struct DepositLiquidity<'info>{
 pub struct CreatorWithdraw<'info>{
     #[account(
         mut,
-        seeds = [b"vault", vault.authority.as_ref()],
+        seeds = [b"vault", vault.authority.as_ref(), &vault.vault_id.to_le_bytes()],
         bump = vault.bump,
     )]
     pub vault : Account<'info, Vault>,

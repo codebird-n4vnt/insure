@@ -32,6 +32,7 @@ pub struct Vault {
     pub total_policies:u64,
     pub total_claims:u64,
     pub treasury_bump:u8,
+    pub vault_id:u64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]

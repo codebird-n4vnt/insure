@@ -179,9 +179,9 @@ fn create_usdc_mint_and_ata(
 
 // ─── PDA helpers ───────────────────────────────────────────────────────────
 
-fn vault_pdas(authority: &Pubkey) -> (Pubkey, u8, Pubkey) {
+fn vault_pdas(authority: &Pubkey, vault_id: u64) -> (Pubkey, u8, Pubkey) {
     let (vault, bump) =
-        Pubkey::find_program_address(&[b"vault", authority.as_ref()], &program_id());
+        Pubkey::find_program_address(&[b"vault", authority.as_ref(), &vault_id.to_le_bytes()], &program_id());
     let (treasury, _) =
         Pubkey::find_program_address(&[b"treasury", vault.as_ref()], &program_id());
     (vault, bump, treasury)
@@ -240,6 +240,7 @@ fn ix_initialize_vault(
 
 fn default_vault_args(now: i64) -> insure::instruction::InitializeVault {
     insure::instruction::InitializeVault {
+        vault_id: 0,
         trigger_type: insure::state::TriggerType::Weather,
         trigger_threshold: 100,
         premium_amount: 1_000_000,
@@ -254,8 +255,10 @@ fn default_vault_args(now: i64) -> insure::instruction::InitializeVault {
 }
 
 fn init_vault(svm: &mut LiteSVM, authority: &Keypair, mint: &Pubkey, now: i64) -> (Pubkey, Pubkey) {
-    let (vault, _, treasury) = vault_pdas(&authority.pubkey());
+    let vault_id: u64 = 0;
+    let (vault, _, treasury) = vault_pdas(&authority.pubkey(), vault_id);
     let args = insure::instruction::InitializeVault {
+        vault_id: 0,
         trigger_type: insure::state::TriggerType::Weather,
         trigger_threshold: 100,
         premium_amount: 1_000_000,
@@ -279,7 +282,7 @@ fn test_initialize_vault_success() {
     let authority = Keypair::new();
     let mut svm = setup(&[&authority]);
     let mint = create_bare_mint(&mut svm, &authority);
-    let (vault, _, treasury) = vault_pdas(&authority.pubkey());
+    let (vault, _, treasury) = vault_pdas(&authority.pubkey(), 0);
     let t = now(&svm);
 
     let args = default_vault_args(t);
@@ -301,7 +304,7 @@ fn test_initialize_vault_subscription_start_in_past_fails() {
     let authority = Keypair::new();
     let mut svm = setup(&[&authority]);
     let mint = create_bare_mint(&mut svm, &authority);
-    let (vault, _, treasury) = vault_pdas(&authority.pubkey());
+    let (vault, _, treasury) = vault_pdas(&authority.pubkey(), 0);
     let t = now(&svm);
 
     let mut args = default_vault_args(t);
@@ -317,7 +320,7 @@ fn test_initialize_vault_zero_premium_fails() {
     let authority = Keypair::new();
     let mut svm = setup(&[&authority]);
     let mint = create_bare_mint(&mut svm, &authority);
-    let (vault, _, treasury) = vault_pdas(&authority.pubkey());
+    let (vault, _, treasury) = vault_pdas(&authority.pubkey(), 0);
     let t = now(&svm);
 
     let mut args = default_vault_args(t);

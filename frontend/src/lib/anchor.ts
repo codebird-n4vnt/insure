@@ -3,7 +3,7 @@ import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
 import IDL from "../../idl/insure.json";
 import type {Insure} from "../../idl/insure.ts"
 
-export const PROGRAM_ID = new PublicKey("8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw");
+export const PROGRAM_ID = new PublicKey("5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF");
 export const USDC_MINT = new PublicKey(
   process.env.NEXT_PUBLIC_USDC_MINT ?? "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
 );
@@ -16,10 +16,10 @@ export function getProgram(provider: AnchorProvider) {
   return new Program<Insure>(IDL as Insure, provider);
 }
 
-// On-chain seeds: [b"vault", authority]  — no trigger type or count
-export function vaultPDA(authority: PublicKey) {
+// On-chain seeds: [b"vault", authority, vault_id (le u64)]
+export function vaultPDA(authority: PublicKey, vaultId: BN) {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from("vault"), authority.toBuffer()],
+    [Buffer.from("vault"), authority.toBuffer(), vaultId.toArrayLike(Buffer, "le", 8)],
     PROGRAM_ID
   );
 }

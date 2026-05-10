@@ -6,7 +6,7 @@ import bs58 from "bs58"
 import IDL from "./types/insure.json";
 import type {Insure} from "./types/insure";
 
-export const PROGRAM_ID = new PublicKey("8c1CfhXgqjKJct4kgoupTHCWk7TnK3MeLjRSV2KqqCsw");
+export const PROGRAM_ID = new PublicKey("5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF");
 export const USDC_MINT = new PublicKey(process.env.USDC_MINT_ADDRESS!);
 export const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 

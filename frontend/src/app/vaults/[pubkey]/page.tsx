@@ -6,12 +6,36 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { AnchorProvider, BN } from '@coral-xyz/anchor';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { CloudRain, Plane, Shield, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
+import { CloudRain, Plane, Shield, Loader2, CheckCircle, AlertCircle, ArrowLeft, Droplets } from 'lucide-react';
 import Link from 'next/link';
 import {
   getProgram, USDC_MINT, vaultTreasuryPDA, policyPDA, claimPDA,
-  formatUSDC, formatDate, triggerTypeLabel,
+  formatUSDC, formatDate, triggerTypeLabel, toUSDC,
 } from '@/lib/anchor';
+
+/** Extract only the human-readable message from an Anchor / RPC error. */
+function extractErrorMessage(err: any): string {
+  const logs: string[] | undefined = err?.logs ?? err?.transactionError?.logs;
+  if (logs) {
+    for (const line of logs) {
+      const match = line.match(/Error Message: (.+)/);
+      if (match) return match[1];
+    }
+  }
+  const msg: string = err?.message ?? 'Transaction failed';
+  return msg.split('\n')[0];
+}
+
+/** Inline error banner rendered near the triggering button. */
+function ErrorBanner({ msg }: { msg: string }) {
+  if (!msg) return null;
+  return (
+    <div className="flex items-start gap-3 mt-3 p-3 rounded-[10px] bg-error-container text-on-error-container text-[13px]">
+      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+      <span>{msg}</span>
+    </div>
+  );
+}
 
 export default function VaultDetailPage() {
   const { pubkey } = useParams<{ pubkey: string }>();
@@ -21,18 +45,28 @@ export default function VaultDetailPage() {
   const [vault, setVault] = useState<any>(null);
   const [policy, setPolicy] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [txStatus, setTxStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  // Per-action tx state
+  const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [subscribeError, setSubscribeError] = useState('');
+
+  const [premiumStatus, setPremiumStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [premiumError, setPremiumError] = useState('');
+
+  const [claimStatus, setClaimStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [claimError, setClaimError] = useState('');
+
+  const [depositStatus, setDepositStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [depositError, setDepositError] = useState('');
+
   const [txSig, setTxSig] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
   const [showClaimForm, setShowClaimForm] = useState(false);
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [flightNumber, setFlightNumber] = useState('');
   const [flightDate, setFlightDate] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
 
-  // Step 1 = "Subscribe" (creates PolicyHolder PDA, no token transfer)
-  // Step 2 = "Pay Premium" (transfers USDC, activates coverage)
-  // null = not subscribed yet
   const subscribeStep: 1 | 2 | null = policy === null ? null : (!policy.isSubscribed ? 1 : 2);
 
   const refreshPolicy = async (program: any, vaultKey: PublicKey) => {
@@ -83,10 +117,12 @@ export default function VaultDetailPage() {
     return new AnchorProvider(connection, { publicKey, signTransaction, signAllTransactions }, { commitment: 'confirmed' });
   };
 
-  // ─── Step 1: subscribe() — creates PolicyHolder account, no USDC ───
+  const isCreator = publicKey && vault && publicKey.toBase58() === vault.authority.toBase58();
+
+  // ─── Subscribe ───────────────────────────────────────────────────────────────
   const handleSubscribe = async () => {
-    setTxStatus('loading');
-    setErrorMsg('');
+    setSubscribeStatus('loading');
+    setSubscribeError('');
     try {
       const provider = getProvider();
       const program = getProgram(provider);
@@ -104,19 +140,18 @@ export default function VaultDetailPage() {
         .rpc();
 
       setTxSig(sig);
-      setTxStatus('success');
-      // Refresh so we see the new policy account and advance to step 2
+      setSubscribeStatus('success');
       await refreshPolicy(program, vaultKey);
     } catch (err: any) {
-      setErrorMsg(err?.message ?? 'Transaction failed');
-      setTxStatus('error');
+      setSubscribeError(extractErrorMessage(err));
+      setSubscribeStatus('error');
     }
   };
 
-  // ─── Step 2: pay_premium() — transfers USDC, activates coverage ───
+  // ─── Pay Premium ─────────────────────────────────────────────────────────────
   const handlePayPremium = async () => {
-    setTxStatus('loading');
-    setErrorMsg('');
+    setPremiumStatus('loading');
+    setPremiumError('');
     try {
       const provider = getProvider();
       const program = getProgram(provider);
@@ -141,26 +176,25 @@ export default function VaultDetailPage() {
         .rpc();
 
       setTxSig(sig);
-      setTxStatus('success');
+      setPremiumStatus('success');
       await refreshPolicy(program, vaultKey);
     } catch (err: any) {
-      setErrorMsg(err?.message ?? 'Transaction failed');
-      setTxStatus('error');
+      setPremiumError(extractErrorMessage(err));
+      setPremiumStatus('error');
     }
   };
 
-  // ─── Raise Claim ───
+  // ─── Raise Claim ─────────────────────────────────────────────────────────────
   const handleRaiseClaim = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTxStatus('loading');
-    setErrorMsg('');
+    setClaimStatus('loading');
+    setClaimError('');
     try {
       const provider = getProvider();
       const program = getProgram(provider);
       const vaultKey = new PublicKey(pubkey);
       const [policyKey] = policyPDA(vaultKey, publicKey!);
 
-      // Always re-fetch fresh policy to get latest claimCount — avoids stale PDA
       const freshPolicy = await program.account.policyHolder.fetch(policyKey);
       const claimNumber = new BN(freshPolicy.claimCount.toNumber());
 
@@ -195,12 +229,48 @@ export default function VaultDetailPage() {
         .rpc();
 
       setTxSig(sig);
-      setTxStatus('success');
+      setClaimStatus('success');
       setShowClaimForm(false);
       setPolicy(await refreshPolicy(program, vaultKey));
     } catch (err: any) {
-      setErrorMsg(err?.message ?? 'Claim failed');
-      setTxStatus('error');
+      setClaimError(extractErrorMessage(err));
+      setClaimStatus('error');
+    }
+  };
+
+  // ─── Deposit Liquidity (creator only) ────────────────────────────────────────
+  const handleDepositLiquidity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDepositStatus('loading');
+    setDepositError('');
+    try {
+      const provider = getProvider();
+      const program = getProgram(provider);
+      const vaultKey = new PublicKey(pubkey);
+      const [treasury] = vaultTreasuryPDA(vaultKey);
+      const creatorUsdc = await getAssociatedTokenAddress(USDC_MINT, publicKey!);
+
+      const sig = await program.methods
+        .depositLiquidity(toUSDC(parseFloat(depositAmount)))
+        .accountsStrict({
+          vault: vaultKey,
+          vaultTreasury: treasury,
+          creatorUsdc,
+          creator: publicKey!,
+          usdcMint: USDC_MINT,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+      setTxSig(sig);
+      setDepositStatus('success');
+      setDepositAmount('');
+      // Refresh vault data to see updated total_liquidity
+      const updatedVault = await program.account.vault.fetch(vaultKey);
+      setVault(updatedVault);
+    } catch (err: any) {
+      setDepositError(extractErrorMessage(err));
+      setDepositStatus('error');
     }
   };
 
@@ -244,6 +314,7 @@ export default function VaultDetailPage() {
               </div>
               <h1 className="text-[36px] font-bold mb-2">Insurance Vault</h1>
               <p className="text-white/60 text-[14px] font-mono break-all">{pubkey}</p>
+              <p className="text-white/40 text-[12px] mt-1">Vault ID: {vault.vaultId?.toString() ?? '—'}</p>
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-white/60 text-[12px] font-bold tracking-[0.1em] uppercase mb-1">Coverage Ends</p>
@@ -268,25 +339,55 @@ export default function VaultDetailPage() {
           ))}
         </div>
 
-        {/* Action Panel */}
-        <div className="bg-surface-container-lowest/80 backdrop-blur-md rounded-[16px] p-[40px] floating-shadow border border-white/50">
-
-          {/* Tx feedback */}
-          {txStatus === 'success' && (
-            <div className="mb-6 p-4 rounded-[12px] bg-green-50 text-green-800 flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+        {/* ── Creator: Deposit Liquidity Panel ── */}
+        {isCreator && (
+          <div className="bg-surface-container-lowest/80 backdrop-blur-md rounded-[16px] p-[40px] floating-shadow border border-white/50 mb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center">
+                <Droplets className="w-5 h-5 text-primary" />
+              </div>
               <div>
-                <p className="font-bold">Transaction Confirmed!</p>
-                <a href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`} target="_blank" rel="noopener noreferrer" className="text-[13px] underline break-all">{txSig}</a>
+                <h3 className="text-[20px] font-bold text-on-background">Deposit Liquidity</h3>
+                <p className="text-[13px] text-on-surface-variant">Add more USDC to your vault's liquidity pool.</p>
               </div>
             </div>
-          )}
-          {txStatus === 'error' && (
-            <div className="mb-6 p-4 rounded-[12px] bg-error-container text-on-error-container flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-              <p>{errorMsg}</p>
-            </div>
-          )}
+
+            {depositStatus === 'success' && (
+              <div className="mb-4 flex items-start gap-3 p-3 rounded-[10px] bg-green-50 text-green-800 text-[13px]">
+                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>
+                  Liquidity deposited!{' '}
+                  <a href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`} target="_blank" rel="noopener noreferrer" className="underline">View tx</a>
+                </span>
+              </div>
+            )}
+
+            <form onSubmit={handleDepositLiquidity} className="flex flex-col sm:flex-row gap-4 items-start">
+              <div className="relative flex-1">
+                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">$</span>
+                <input
+                  type="number" min="0" step="any" required
+                  value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)}
+                  placeholder="Amount in USDC"
+                  className="w-full pl-10 pr-4 py-4 rounded-full border border-outline-variant bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-bold text-on-background"
+                />
+              </div>
+              <div>
+                <button
+                  type="submit"
+                  disabled={depositStatus === 'loading' || vault.isPaused}
+                  className="px-8 py-4 rounded-full font-bold bg-primary text-on-primary electric-glow hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                >
+                  {depositStatus === 'loading' ? <><Loader2 className="w-4 h-4 animate-spin" />Depositing...</> : 'Deposit'}
+                </button>
+                <ErrorBanner msg={depositError} />
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Action Panel (subscriber/user view) */}
+        <div className="bg-surface-container-lowest/80 backdrop-blur-md rounded-[16px] p-[40px] floating-shadow border border-white/50">
 
           {!publicKey ? (
             <div className="text-center py-8">
@@ -296,7 +397,7 @@ export default function VaultDetailPage() {
             </div>
 
           ) : isFullyActive ? (
-            /* ── Subscribed + Premium Paid: show claim UI ── */
+            /* ── Subscribed + Premium Paid ── */
             <div>
               <div className="flex items-center gap-3 mb-8">
                 <CheckCircle className="w-8 h-8 text-green-500" />
@@ -306,15 +407,19 @@ export default function VaultDetailPage() {
                 </div>
               </div>
 
-              {/* Pay next month's premium */}
-              <button
-                onClick={handlePayPremium}
-                disabled={txStatus === 'loading'}
-                className="mb-4 bg-surface-container text-on-background border border-outline-variant px-8 py-3 rounded-full font-bold hover:border-primary/50 transition-all disabled:opacity-50 flex items-center gap-2"
-              >
-                {txStatus === 'loading' ? <><Loader2 className="w-4 h-4 animate-spin" />Processing...</> : `Renew for ${formatUSDC(vault.premiumAmount)}`}
-              </button>
+              {/* Renew */}
+              <div className="mb-4">
+                <button
+                  onClick={handlePayPremium}
+                  disabled={premiumStatus === 'loading'}
+                  className="bg-surface-container text-on-background border border-outline-variant px-8 py-3 rounded-full font-bold hover:border-primary/50 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {premiumStatus === 'loading' ? <><Loader2 className="w-4 h-4 animate-spin" />Processing...</> : `Renew for ${formatUSDC(vault.premiumAmount)}`}
+                </button>
+                <ErrorBanner msg={premiumError} />
+              </div>
 
+              {/* Raise Claim */}
               {!showClaimForm ? (
                 <button onClick={() => setShowClaimForm(true)} className="bg-primary text-on-primary px-8 py-4 rounded-full font-bold electric-glow hover:scale-105 transition-transform">
                   Raise a Claim
@@ -349,18 +454,21 @@ export default function VaultDetailPage() {
                       </div>
                     </div>
                   )}
-                  <div className="flex gap-4">
-                    <button type="submit" disabled={txStatus === 'loading'} className="bg-primary text-on-primary px-8 py-4 rounded-full font-bold electric-glow hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2">
-                      {txStatus === 'loading' ? <><Loader2 className="w-4 h-4 animate-spin" />Submitting...</> : 'Submit Claim'}
-                    </button>
-                    <button type="button" onClick={() => setShowClaimForm(false)} className="px-8 py-4 rounded-full font-bold border border-outline-variant text-on-surface-variant hover:border-primary/30 transition-all">Cancel</button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-4">
+                      <button type="submit" disabled={claimStatus === 'loading'} className="bg-primary text-on-primary px-8 py-4 rounded-full font-bold electric-glow hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2">
+                        {claimStatus === 'loading' ? <><Loader2 className="w-4 h-4 animate-spin" />Submitting...</> : 'Submit Claim'}
+                      </button>
+                      <button type="button" onClick={() => setShowClaimForm(false)} className="px-8 py-4 rounded-full font-bold border border-outline-variant text-on-surface-variant hover:border-primary/30 transition-all">Cancel</button>
+                    </div>
+                    <ErrorBanner msg={claimError} />
                   </div>
                 </form>
               )}
             </div>
 
           ) : subscribeStep === 1 ? (
-            /* ── Step 1: PolicyHolder exists but not subscribed yet ── */
+            /* ── Step 1 done, pay premium ── */
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center text-[14px]">1</div>
@@ -376,17 +484,18 @@ export default function VaultDetailPage() {
               </p>
               <button
                 onClick={handlePayPremium}
-                disabled={txStatus === 'loading' || vault.isPaused}
+                disabled={premiumStatus === 'loading' || vault.isPaused}
                 className={`px-10 py-5 rounded-full font-bold text-[18px] flex items-center gap-3 transition-all ${
                   vault.isPaused ? 'bg-surface-container text-on-surface-variant cursor-not-allowed' : 'bg-primary text-on-primary electric-glow hover:scale-105'
                 }`}
               >
-                {txStatus === 'loading' ? <><Loader2 className="w-5 h-5 animate-spin" />Processing...</> : vault.isPaused ? 'Vault Paused' : `Pay ${formatUSDC(vault.premiumAmount)} to Activate`}
+                {premiumStatus === 'loading' ? <><Loader2 className="w-5 h-5 animate-spin" />Processing...</> : vault.isPaused ? 'Vault Paused' : `Pay ${formatUSDC(vault.premiumAmount)} to Activate`}
               </button>
+              <ErrorBanner msg={premiumError} />
             </div>
 
           ) : (
-            /* ── Step 0: No policy account yet — call subscribe() ── */
+            /* ── Step 0: subscribe ── */
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-full bg-primary text-on-primary font-bold flex items-center justify-center text-[14px]">1</div>
@@ -401,13 +510,14 @@ export default function VaultDetailPage() {
               </p>
               <button
                 onClick={handleSubscribe}
-                disabled={txStatus === 'loading' || vault.isPaused}
+                disabled={subscribeStatus === 'loading' || vault.isPaused}
                 className={`px-10 py-5 rounded-full font-bold text-[18px] flex items-center gap-3 transition-all ${
                   vault.isPaused ? 'bg-surface-container text-on-surface-variant cursor-not-allowed' : 'bg-primary text-on-primary electric-glow hover:scale-105'
                 }`}
               >
-                {txStatus === 'loading' ? <><Loader2 className="w-5 h-5 animate-spin" />Registering...</> : vault.isPaused ? 'Vault Paused' : 'Register Account (Step 1)'}
+                {subscribeStatus === 'loading' ? <><Loader2 className="w-5 h-5 animate-spin" />Registering...</> : vault.isPaused ? 'Vault Paused' : 'Register Account (Step 1)'}
               </button>
+              <ErrorBanner msg={subscribeError} />
             </div>
           )}
         </div>
