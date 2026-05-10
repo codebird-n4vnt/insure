@@ -96,7 +96,6 @@ export default function VaultDetailPage() {
       const sig = await program.methods
         .subscribe()
         .accounts({
-          vault: vaultKey,
           owner: publicKey!,
         })
         .rpc();
@@ -125,7 +124,6 @@ export default function VaultDetailPage() {
       const sig = await program.methods
         .payPremium()
         .accounts({
-          vault: vaultKey,
           ownerUsdc,
           creatorUsdc,
           usdcMint: USDC_MINT,
@@ -175,7 +173,6 @@ export default function VaultDetailPage() {
         .raiseClaim(claimData)
         .accounts({
           claimant: publicKey!,
-          vault: vaultKey,
           claim: claimKey,
           claimantUsdc,
           usdcMint: USDC_MINT,

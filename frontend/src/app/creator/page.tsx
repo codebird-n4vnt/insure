@@ -85,7 +85,6 @@ export default function CreatorPage() {
       const depositTx = await program.methods
         .depositLiquidity(toUSDC(parseFloat(depositAmount)))
         .accounts({
-          vault: vaultKey,
           creatorUsdc,
           creator: publicKey,
           usdcMint: USDC_MINT,
