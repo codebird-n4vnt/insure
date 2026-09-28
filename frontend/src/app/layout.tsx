@@ -5,6 +5,7 @@ import AppWalletProvider from "@/components/providers/AppWalletProvider";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AmbientBackground from "@/components/layout/AmbientBackground";
+import DevnetBanner from "@/components/layout/DevnetBanner";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -13,15 +14,21 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "Insure Protocol — Parametric Insurance on Solana",
+  metadataBase: new URL(SITE_URL),
+  title: { default: "Insure — parametric insurance on Solana", template: "%s · Insure" },
   description:
-    "Automated, oracle-verified parametric insurance payouts on Solana. No claims adjusters, no paperwork.",
+    "Drought and flight-delay cover that pays automatically. Fixed rules, real-world data, and an on-chain evidence trail anyone can verify.",
+  openGraph: {
+    title: "Insure — parametric insurance on Solana",
+    description: "Cover that pays automatically when the data says so. Every decision verifiable on-chain.",
+    images: [{ url: "/logo.png", width: 600, height: 600 }],
+  },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="light">
       <body
@@ -29,8 +36,9 @@ export default function RootLayout({
       >
         <AppWalletProvider>
           <AmbientBackground />
+          <DevnetBanner />
           <Navbar />
-          <main className="pt-32">{children}</main>
+          <main className="pt-36">{children}</main>
           <Footer />
         </AppWalletProvider>
       </body>

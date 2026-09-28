@@ -10,8 +10,9 @@ export default function AmbientBackground() {
     if (!bg) return;
     
     const numOrbs = 6;
-    const orbs: any[] = [];
-    const colors = ['bg-primary', 'bg-secondary', 'bg-tertiary-container', 'bg-primary-container'];
+    const orbs: { element: HTMLDivElement; baseX: number; baseY: number; vx: number; vy: number; offsetX: number; offsetY: number }[] = [];
+    // Light brand tints only: orbs sit behind text and must never reduce its contrast.
+    const colors = ['bg-primary-fixed-dim', 'bg-tertiary-container', 'bg-secondary-container', 'bg-tertiary-fixed-dim'];
     
     for (let i = 0; i < numOrbs; i++) {
         const orb = document.createElement('div');

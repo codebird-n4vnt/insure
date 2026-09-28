@@ -8,18 +8,22 @@
   },
   "instructions": [
     {
-      "name": "creator_withdraw",
+      "name": "claim_creator_fees",
       "discriminator": [
-        92,
-        117,
-        206,
-        254,
-        174,
-        108,
-        37,
-        106
+        0,
+        23,
+        125,
+        234,
+        156,
+        118,
+        134,
+        89
       ],
       "accounts": [
+        {
+          "name": "creator",
+          "signer": true
+        },
         {
           "name": "vault",
           "writable": true,
@@ -78,12 +82,102 @@
           "writable": true
         },
         {
+          "name": "usdc_mint",
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "creator_withdraw",
+      "docs": [
+        "After expiry the creator takes back everything left in the treasury.",
+        "Blocked while claims are pending, unless the oracle has been silent for",
+        "FORCE_WITHDRAW_DELAY past expiry."
+      ],
+      "discriminator": [
+        92,
+        117,
+        206,
+        254,
+        174,
+        108,
+        37,
+        106
+      ],
+      "accounts": [
+        {
           "name": "creator",
-          "writable": true,
           "signer": true
         },
         {
-          "name": "usdc_mint"
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator_usdc",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint",
+          "relations": [
+            "vault"
+          ]
         },
         {
           "name": "token_program",
@@ -106,6 +200,11 @@
       ],
       "accounts": [
         {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
           "name": "vault",
           "writable": true,
           "pda": {
@@ -163,12 +262,10 @@
           "writable": true
         },
         {
-          "name": "creator",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "usdc_mint"
+          "name": "usdc_mint",
+          "relations": [
+            "vault"
+          ]
         },
         {
           "name": "token_program",
@@ -177,8 +274,71 @@
       ],
       "args": [
         {
-          "name": "deposit_amount",
+          "name": "amount",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_config",
+      "docs": [
+        "One-time protocol setup. Only the program's upgrade authority can call this,",
+        "so nobody can front-run deployment and install their own oracle."
+      ],
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "program",
+          "address": "5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "oracle_authority",
+          "type": "pubkey"
         }
       ]
     },
@@ -199,6 +359,27 @@
           "name": "authority",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
         },
         {
           "name": "vault",
@@ -252,19 +433,12 @@
           }
         },
         {
-          "name": "usdc_mint"
-        },
-        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "rent",
-          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": [
@@ -283,6 +457,18 @@
         {
           "name": "trigger_threshold",
           "type": "i64"
+        },
+        {
+          "name": "observation_days",
+          "type": "u16"
+        },
+        {
+          "name": "region",
+          "type": {
+            "defined": {
+              "name": "Region"
+            }
+          }
         },
         {
           "name": "premium_amount",
@@ -320,6 +506,9 @@
     },
     {
       "name": "pay_premium",
+      "docs": [
+        "Renew a weather policy for another month."
+      ],
       "discriminator": [
         156,
         253,
@@ -331,6 +520,14 @@
         245
       ],
       "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "policy"
+          ]
+        },
         {
           "name": "vault",
           "writable": true,
@@ -357,7 +554,10 @@
                 "account": "Vault"
               }
             ]
-          }
+          },
+          "relations": [
+            "policy"
+          ]
         },
         {
           "name": "policy",
@@ -416,16 +616,10 @@
           }
         },
         {
-          "name": "creator_usdc",
-          "writable": true
-        },
-        {
-          "name": "usdc_mint"
-        },
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
+          "name": "usdc_mint",
+          "relations": [
+            "vault"
+          ]
         },
         {
           "name": "token_program",
@@ -436,6 +630,10 @@
     },
     {
       "name": "raise_claim",
+      "docs": [
+        "File a claim against the policy's own insured risk. The oracle picks it up",
+        "from the `ClaimFiled` event (or by polling) and settles it."
+      ],
       "discriminator": [
         82,
         27,
@@ -478,7 +676,10 @@
                 "account": "Vault"
               }
             ]
-          }
+          },
+          "relations": [
+            "policy"
+          ]
         },
         {
           "name": "policy",
@@ -568,7 +769,10 @@
           }
         },
         {
-          "name": "usdc_mint"
+          "name": "usdc_mint",
+          "relations": [
+            "vault"
+          ]
         },
         {
           "name": "token_program",
@@ -579,19 +783,152 @@
           "address": "11111111111111111111111111111111"
         }
       ],
+      "args": []
+    },
+    {
+      "name": "release_lapsed_policy",
+      "docs": [
+        "Frees the capital backing a weather policy that can no longer be renewed or",
+        "claimed on (its owner stopped paying). Permissionless: the conditions alone",
+        "guarantee no legitimate claim is cut off, and underwriters get their",
+        "capacity back without waiting for the vault to expire."
+      ],
+      "discriminator": [
+        97,
+        69,
+        0,
+        47,
+        236,
+        139,
+        98,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "Vault"
+              }
+            ]
+          },
+          "relations": [
+            "policy"
+          ]
+        },
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "policy.owner",
+                "account": "PolicyHolder"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_vault_paused",
+      "docs": [
+        "Pausing only stops new subscriptions. Existing policyholders can always",
+        "renew and get their claims settled, so a creator can't pause their way out of a payout."
+      ],
+      "discriminator": [
+        239,
+        131,
+        203,
+        69,
+        243,
+        11,
+        234,
+        153
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "Vault"
+              }
+            ]
+          }
+        }
+      ],
       "args": [
         {
-          "name": "claim_data",
-          "type": {
-            "defined": {
-              "name": "ClaimData"
-            }
-          }
+          "name": "paused",
+          "type": "bool"
         }
       ]
     },
     {
       "name": "settle_claim",
+      "docs": [
+        "Only the configured oracle can settle. The verdict, the measured value and a",
+        "hash of the evidence are recorded on-chain so anyone can audit the decision."
+      ],
       "discriminator": [
         205,
         203,
@@ -603,6 +940,92 @@
         155
       ],
       "accounts": [
+        {
+          "name": "oracle",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "Vault"
+              }
+            ]
+          },
+          "relations": [
+            "policy",
+            "claim"
+          ]
+        },
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "claim.claimant",
+                "account": "Claim"
+              }
+            ]
+          },
+          "relations": [
+            "claim"
+          ]
+        },
         {
           "name": "claim",
           "writable": true,
@@ -636,67 +1059,106 @@
           }
         },
         {
-          "name": "vault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault.authority",
-                "account": "Vault"
-              },
-              {
-                "kind": "account",
-                "path": "vault.vault_id",
-                "account": "Vault"
-              }
-            ]
-          }
+          "name": "usdc_mint",
+          "relations": [
+            "vault"
+          ]
         },
         {
-          "name": "policy",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  108,
-                  105,
-                  99,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault"
-              },
-              {
-                "kind": "account",
-                "path": "policy.owner",
-                "account": "PolicyHolder"
-              }
-            ]
-          }
+          "name": "claimant"
         },
         {
           "name": "claimant_usdc",
-          "writable": true
-        },
-        {
-          "name": "quote_account"
+          "docs": [
+            "Created if the claimant closed their USDC account, so a payout can't be blocked."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "claimant"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
         },
         {
           "name": "vault_treasury",
@@ -724,17 +1186,44 @@
           }
         },
         {
-          "name": "usdc_mint"
-        },
-        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "approved",
+          "type": "bool"
+        },
+        {
+          "name": "observed_value",
+          "type": "i64"
+        },
+        {
+          "name": "evidence_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "subscribe",
+      "docs": [
+        "Buy a policy: registers the insured risk and pays the first premium atomically,",
+        "so capacity can't be squatted by free subscriptions."
+      ],
       "discriminator": [
         254,
         28,
@@ -746,6 +1235,11 @@
         53
       ],
       "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
         {
           "name": "vault",
           "writable": true,
@@ -802,16 +1296,208 @@
           }
         },
         {
-          "name": "owner",
+          "name": "owner_usdc",
+          "writable": true
+        },
+        {
+          "name": "vault_treasury",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint",
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "risk",
+          "type": {
+            "defined": {
+              "name": "InsuredRisk"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "docs": [
+        "Rotate the oracle key and/or hand over admin rights."
+      ],
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_admin",
+          "type": "pubkey"
+        },
+        {
+          "name": "new_oracle_authority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_excess_liquidity",
+      "docs": [
+        "Withdraw capital that isn't backing any policy. Exposure stays fully collateralised."
+      ],
+      "discriminator": [
+        51,
+        186,
+        10,
+        85,
+        52,
+        210,
+        117,
+        192
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.authority",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator_usdc",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint",
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -826,6 +1512,19 @@
         215,
         246,
         102
+      ]
+    },
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
       ]
     },
     {
@@ -883,6 +1582,19 @@
       ]
     },
     {
+      "name": "ConfigUpdated",
+      "discriminator": [
+        40,
+        241,
+        230,
+        122,
+        11,
+        19,
+        198,
+        194
+      ]
+    },
+    {
       "name": "LiquidityDeposited",
       "discriminator": [
         218,
@@ -896,16 +1608,42 @@
       ]
     },
     {
-      "name": "LiquidityWithdrawnAndVaultPaused",
+      "name": "LiquidityWithdrawn",
       "discriminator": [
-        9,
-        247,
-        193,
-        85,
-        15,
-        144,
-        249,
-        40
+        240,
+        120,
+        73,
+        139,
+        154,
+        31,
+        218,
+        68
+      ]
+    },
+    {
+      "name": "PolicyPurchased",
+      "discriminator": [
+        120,
+        100,
+        255,
+        218,
+        16,
+        36,
+        194,
+        192
+      ]
+    },
+    {
+      "name": "PolicyReleased",
+      "discriminator": [
+        96,
+        219,
+        171,
+        174,
+        33,
+        159,
+        243,
+        160
       ]
     },
     {
@@ -919,6 +1657,19 @@
         14,
         243,
         40
+      ]
+    },
+    {
+      "name": "VaultClosed",
+      "discriminator": [
+        238,
+        129,
+        38,
+        228,
+        227,
+        118,
+        249,
+        215
       ]
     },
     {
@@ -939,32 +1690,32 @@
     {
       "code": 6000,
       "name": "InvalidTimeWindow",
-      "msg": "The time you entered is invalid!"
+      "msg": "The time you entered is invalid"
     },
     {
       "code": 6001,
       "name": "InvalidAmount",
-      "msg": "Invalid amount!"
+      "msg": "Invalid amount"
     },
     {
       "code": 6002,
       "name": "VaultPaused",
-      "msg": "Vault is paused"
+      "msg": "Vault is paused for new subscriptions"
     },
     {
       "code": 6003,
+      "name": "VaultClosed",
+      "msg": "Vault is closed"
+    },
+    {
+      "code": 6004,
       "name": "SubscriptionClosed",
       "msg": "Subscription is closed right now"
     },
     {
-      "code": 6004,
-      "name": "AlreadySubscribed",
-      "msg": "You already have subscribed for this insurance"
-    },
-    {
       "code": 6005,
       "name": "InsufficientLiquidity",
-      "msg": "Insufficient liquidity in the vault, please check after after hours"
+      "msg": "Insufficient liquidity in the vault to underwrite another policy"
     },
     {
       "code": 6006,
@@ -974,37 +1725,37 @@
     {
       "code": 6007,
       "name": "InvalidMint",
-      "msg": "Provided USDC mint address is different from what was stored"
+      "msg": "Token mint does not match the vault's mint"
     },
     {
       "code": 6008,
-      "name": "NotSubscribed",
-      "msg": "Not subscribed"
+      "name": "OutsideCoverageWindow",
+      "msg": "You are outside the coverage window"
     },
     {
       "code": 6009,
-      "name": "OutsideCoverageWindow",
-      "msg": "You are trying to pay premium outside the coverage window"
+      "name": "CoverageLapsed",
+      "msg": "Your insurance coverage has lapsed"
     },
     {
       "code": 6010,
-      "name": "CoverageLapsed",
-      "msg": "Your insurance coverage is lapsed, please buy any other premium"
+      "name": "AlreadyFullyCovered",
+      "msg": "Coverage is already paid up to the end of the vault"
     },
     {
       "code": 6011,
-      "name": "ClaimApproved",
-      "msg": "This claim was already approved"
+      "name": "ClaimAlreadySettled",
+      "msg": "This claim has already been settled"
     },
     {
       "code": 6012,
-      "name": "ClaimRejected",
-      "msg": "This claim was rejected"
+      "name": "ClaimAlreadyPending",
+      "msg": "This policy already has a claim awaiting settlement"
     },
     {
       "code": 6013,
-      "name": "InvalidOracleResult",
-      "msg": "Invalid oracle result"
+      "name": "PolicyAlreadyPaidOut",
+      "msg": "This policy has already received its payout"
     },
     {
       "code": 6014,
@@ -1015,6 +1766,81 @@
       "code": 6015,
       "name": "VaultNotExpired",
       "msg": "Vault money can only be withdrawn after the vault has expired"
+    },
+    {
+      "code": 6016,
+      "name": "ClaimsPending",
+      "msg": "Claims are still pending settlement"
+    },
+    {
+      "code": 6017,
+      "name": "FeeTooHigh",
+      "msg": "Creator fee exceeds the allowed maximum"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidThreshold",
+      "msg": "Trigger threshold is invalid for this trigger type"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidObservationWindow",
+      "msg": "Observation window is invalid"
+    },
+    {
+      "code": 6020,
+      "name": "RiskTypeMismatch",
+      "msg": "Insured risk does not match the vault's trigger type"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidCoordinates",
+      "msg": "Latitude or longitude out of range"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidRegion",
+      "msg": "Coverage region is invalid (must be a box at most 10° wide)"
+    },
+    {
+      "code": 6023,
+      "name": "OutsideRegion",
+      "msg": "This location is outside the vault's coverage region"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidFlightNumber",
+      "msg": "Flight number must be 3-8 uppercase letters or digits"
+    },
+    {
+      "code": 6025,
+      "name": "InvalidFlightDate",
+      "msg": "Flight date must be a UTC midnight inside the coverage window"
+    },
+    {
+      "code": 6026,
+      "name": "ObservationWindowNotCovered",
+      "msg": "Paid coverage doesn't span a full observation window; renew first"
+    },
+    {
+      "code": 6027,
+      "name": "ClaimTooEarly",
+      "msg": "It is too early to file this claim"
+    },
+    {
+      "code": 6028,
+      "name": "PolicyStillActive",
+      "msg": "This policy can still be renewed or claimed on"
+    },
+    {
+      "code": 6029,
+      "name": "InvalidAuthority",
+      "msg": "Address cannot be the default (all-zero) key"
+    },
+    {
+      "code": 6030,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
     }
   ],
   "types": [
@@ -1032,8 +1858,35 @@
             "type": "pubkey"
           },
           {
+            "name": "policy",
+            "type": "pubkey"
+          },
+          {
             "name": "claim_number",
             "type": "u64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "Kept before the variable-length `risk` so it sits at a fixed offset",
+              "(CLAIM_STATUS_OFFSET) and indexers can filter pending claims with memcmp."
+            ],
+            "type": {
+              "defined": {
+                "name": "ClaimStatus"
+              }
+            }
+          },
+          {
+            "name": "risk",
+            "docs": [
+              "Snapshot of the policy's insured risk at filing time."
+            ],
+            "type": {
+              "defined": {
+                "name": "InsuredRisk"
+              }
+            }
           },
           {
             "name": "filed_at",
@@ -1044,62 +1897,32 @@
             "type": "i64"
           },
           {
-            "name": "status",
-            "type": {
-              "defined": {
-                "name": "ClaimStatus"
-              }
-            }
-          },
-          {
             "name": "payout_amount",
             "type": "u64"
           },
           {
+            "name": "observed_value",
+            "docs": [
+              "Measured value the oracle decided on: rainfall in 0.1 mm, or delay in minutes",
+              "(-1 = cancelled). 0 while pending."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "evidence_hash",
+            "docs": [
+              "sha256 of the oracle's evidence bundle (raw API data + reasoning), served by the keeper."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
             "name": "bump",
             "type": "u8"
-          },
-          {
-            "name": "claim_data",
-            "type": {
-              "defined": {
-                "name": "ClaimData"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "ClaimData",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Weather",
-            "fields": [
-              {
-                "name": "latitude",
-                "type": "f64"
-              },
-              {
-                "name": "longitude",
-                "type": "f64"
-              }
-            ]
-          },
-          {
-            "name": "FlightDelay",
-            "fields": [
-              {
-                "name": "flight_number",
-                "type": "string"
-              },
-              {
-                "name": "flight_date",
-                "type": "i64"
-              }
-            ]
           }
         ]
       }
@@ -1150,7 +1973,7 @@
             "type": "pubkey"
           },
           {
-            "name": "verdict",
+            "name": "approved",
             "type": "bool"
           },
           {
@@ -1158,8 +1981,17 @@
             "type": "u64"
           },
           {
-            "name": "oracle_value",
+            "name": "observed_value",
             "type": "i64"
+          },
+          {
+            "name": "evidence_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "timestamp",
@@ -1186,6 +2018,105 @@
       }
     },
     {
+      "name": "Config",
+      "docs": [
+        "Protocol-wide settings. Created once by the program's upgrade authority."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_authority",
+            "docs": [
+              "The only key allowed to settle claims."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "docs": [
+              "The only mint vaults may be denominated in (USDC)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InsuredRisk",
+      "docs": [
+        "The thing a policy insures. Fixed at subscription time so a claimant",
+        "can't pick whichever location or flight happened to have a bad day."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Weather",
+            "fields": [
+              {
+                "name": "latitude_e6",
+                "docs": [
+                  "Degrees × 1e6"
+                ],
+                "type": "i32"
+              },
+              {
+                "name": "longitude_e6",
+                "docs": [
+                  "Degrees × 1e6"
+                ],
+                "type": "i32"
+              }
+            ]
+          },
+          {
+            "name": "FlightDelay",
+            "fields": [
+              {
+                "name": "flight_number",
+                "docs": [
+                  "IATA flight number, e.g. \"AI101\""
+                ],
+                "type": "string"
+              },
+              {
+                "name": "flight_date",
+                "docs": [
+                  "UTC midnight of the scheduled departure date"
+                ],
+                "type": "i64"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "LiquidityDeposited",
       "type": {
         "kind": "struct",
@@ -1195,11 +2126,7 @@
             "type": "pubkey"
           },
           {
-            "name": "creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "deposit_amount",
+            "name": "amount",
             "type": "u64"
           },
           {
@@ -1210,7 +2137,7 @@
       }
     },
     {
-      "name": "LiquidityWithdrawnAndVaultPaused",
+      "name": "LiquidityWithdrawn",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1219,8 +2146,12 @@
             "type": "pubkey"
           },
           {
-            "name": "creator",
-            "type": "pubkey"
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_liquidity",
+            "type": "u64"
           }
         ]
       }
@@ -1239,24 +2170,99 @@
             "type": "pubkey"
           },
           {
-            "name": "total_premiums_paid",
-            "type": "u64"
+            "name": "risk",
+            "type": {
+              "defined": {
+                "name": "InsuredRisk"
+              }
+            }
+          },
+          {
+            "name": "covered_from",
+            "docs": [
+              "When coverage began (first premium or coverage_start, whichever is later)."
+            ],
+            "type": "i64"
           },
           {
             "name": "personal_coverage_end",
             "type": "i64"
           },
           {
-            "name": "is_subscribed",
-            "type": "bool"
+            "name": "total_premiums_paid",
+            "type": "u64"
           },
           {
             "name": "claim_count",
             "type": "u64"
           },
           {
+            "name": "has_pending_claim",
+            "type": "bool"
+          },
+          {
+            "name": "paid_out",
+            "type": "bool"
+          },
+          {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "released",
+            "docs": [
+              "Set by `release_lapsed_policy` once every renewal and claim window has",
+              "closed; its payout no longer counts against the vault's capacity."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PolicyPurchased",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "policy",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "personal_coverage_end",
+            "type": "i64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PolicyReleased",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "policy",
+            "type": "pubkey"
+          },
+          {
+            "name": "active_policies",
+            "type": "u64"
           }
         ]
       }
@@ -1290,6 +2296,34 @@
       }
     },
     {
+      "name": "Region",
+      "docs": [
+        "Weather vaults only insure farms inside this box, so a policy priced for one",
+        "climate can't be bought for a much drier one. Micro-degrees; all zero for flight vaults."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "min_lat_e6",
+            "type": "i32"
+          },
+          {
+            "name": "max_lat_e6",
+            "type": "i32"
+          },
+          {
+            "name": "min_lon_e6",
+            "type": "i32"
+          },
+          {
+            "name": "max_lon_e6",
+            "type": "i32"
+          }
+        ]
+      }
+    },
+    {
       "name": "TriggerType",
       "repr": {
         "kind": "rust"
@@ -1316,6 +2350,22 @@
             "type": "pubkey"
           },
           {
+            "name": "vault_id",
+            "type": "u64"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "treasury_bump",
+            "type": "u8"
+          },
+          {
             "name": "trigger_type",
             "type": {
               "defined": {
@@ -1328,6 +2378,24 @@
             "type": "i64"
           },
           {
+            "name": "observation_days",
+            "docs": [
+              "Weather only: length of the trailing rainfall window, in days."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "region",
+            "docs": [
+              "Weather only: where insured farms may be."
+            ],
+            "type": {
+              "defined": {
+                "name": "Region"
+              }
+            }
+          },
+          {
             "name": "premium_amount",
             "type": "u64"
           },
@@ -1336,28 +2404,8 @@
             "type": "u64"
           },
           {
-            "name": "total_premiums_collected",
-            "type": "u64"
-          },
-          {
-            "name": "total_claims_paid",
-            "type": "u64"
-          },
-          {
             "name": "creator_fee_bps",
             "type": "u16"
-          },
-          {
-            "name": "total_liquidity",
-            "type": "u64"
-          },
-          {
-            "name": "is_paused",
-            "type": "bool"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           },
           {
             "name": "subscription_start",
@@ -1380,7 +2428,37 @@
             "type": "i64"
           },
           {
+            "name": "total_liquidity",
+            "docs": [
+              "Creator capital backing the policies (deposits − payouts − excess withdrawals)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "creator_fees_accrued",
+            "docs": [
+              "Creator fees sitting in the treasury that the creator hasn't collected yet."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_premiums_collected",
+            "type": "u64"
+          },
+          {
+            "name": "total_claims_paid",
+            "type": "u64"
+          },
+          {
             "name": "total_policies",
+            "type": "u64"
+          },
+          {
+            "name": "active_policies",
+            "docs": [
+              "Policies that can still be paid out. `active_policies * coverage_amount`",
+              "is the vault's outstanding exposure and must stay <= `total_liquidity`."
+            ],
             "type": "u64"
           },
           {
@@ -1388,11 +2466,41 @@
             "type": "u64"
           },
           {
-            "name": "treasury_bump",
-            "type": "u8"
+            "name": "pending_claims",
+            "type": "u64"
           },
           {
-            "name": "vault_id",
+            "name": "is_paused",
+            "docs": [
+              "Blocks new subscriptions only; never blocks renewals or claim settlement."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "is_closed",
+            "docs": [
+              "Set once the creator has withdrawn after expiry."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_withdrawn",
             "type": "u64"
           }
         ]
@@ -1420,6 +2528,10 @@
             }
           },
           {
+            "name": "trigger_threshold",
+            "type": "i64"
+          },
+          {
             "name": "coverage_start",
             "type": "i64"
           },
@@ -1441,6 +2553,75 @@
           }
         ]
       }
+    }
+  ],
+  "constants": [
+    {
+      "name": "CLAIM_FILING_GRACE",
+      "docs": [
+        "Weather claims can be filed up to this long after paid coverage ends; the",
+        "rainfall window always ends at the coverage end, so no uncovered day counts."
+      ],
+      "type": "i64",
+      "value": "604800"
+    },
+    {
+      "name": "CLAIM_STATUS_OFFSET",
+      "docs": [
+        "Byte offset of `Claim.status` (discriminator 8 + vault 32 + claimant 32 +",
+        "policy 32 + claim_number 8). Off-chain sweeps filter on it."
+      ],
+      "type": "u64",
+      "value": "112"
+    },
+    {
+      "name": "FORCE_WITHDRAW_DELAY",
+      "docs": [
+        "If claims are still pending this long after `vault_expiry` (oracle offline),",
+        "the creator may withdraw anyway so funds are never locked forever."
+      ],
+      "type": "i64",
+      "value": "604800"
+    },
+    {
+      "name": "GRACE_PERIOD",
+      "docs": [
+        "How long after `personal_coverage_end` a policy can still be renewed."
+      ],
+      "type": "i64",
+      "value": "864000"
+    },
+    {
+      "name": "MAX_CREATOR_FEE_BPS",
+      "docs": [
+        "Creators can take at most 50% of each premium."
+      ],
+      "type": "u16",
+      "value": "5000"
+    },
+    {
+      "name": "MAX_OBSERVATION_DAYS",
+      "docs": [
+        "Weather vaults measure rainfall over a trailing window of this many days (max)."
+      ],
+      "type": "u16",
+      "value": "90"
+    },
+    {
+      "name": "MONTH",
+      "docs": [
+        "Length of one premium period."
+      ],
+      "type": "i64",
+      "value": "2592000"
+    },
+    {
+      "name": "ORACLE_FEE",
+      "docs": [
+        "Anti-spam fee charged when a claim is filed (0.005 USDC). Goes to the treasury."
+      ],
+      "type": "u64",
+      "value": "5000"
     }
   ]
 }

@@ -1,0 +1,14 @@
+{
+  "name": "insure-e2e",
+  "private": true,
+  "description": "Full-stack browser tests: local validator (surfpool) + program + oracle + frontend, driven with Playwright.",
+  "scripts": {
+    "stack": "bash stack.sh",
+    "fund": "bash stack.sh fund",
+    "warp": "bash stack.sh warp",
+    "test": "node run.cjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}

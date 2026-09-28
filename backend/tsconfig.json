@@ -1,16 +1,13 @@
 {
-    "compilerOptions": {
-        "target": "ES2022",
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "resolveJsonModule": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "strict": true,
-        "declaration": true,
-        "declarationMap": true,
-        "sourceMap": true,
-        "outDir": "./dist",
-        "rootDir": "./"
-    }
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["index.ts", "src", "scripts", "test", "types"]
 }

@@ -1,28 +1,39 @@
-import express from "express";
-import cors from "cors";
-import {startListener} from "./listener";
+import { oracleKeypair, program } from "./src/chain";
+import { config } from "./src/config";
+import { Keeper } from "./src/keeper";
+import { createServer } from "./src/server";
 
-import {
-    getAllVaults,
-    getPoliciesForVault,
-    getClaimsForVault,
-    getUserPolicy,
-    getUserClaims,
-} from "./indexer"
+async function main() {
+  let keeper: Keeper | null = null;
+  if (config.keeperEnabled && oracleKeypair) {
+    keeper = new Keeper(program, oracleKeypair);
+    try {
+      await keeper.start();
+    } catch (e: any) {
+      console.error(`[keeper] not started: ${e?.message ?? e}`);
+      keeper = null;
+    }
+  } else {
+    console.warn("[keeper] disabled — set ORACLE_KEYPAIR to settle claims. API is read-only.");
+  }
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+  const server = createServer(keeper).listen(config.port, () => {
+    console.log(`Insure backend on :${config.port} (program ${program.programId.toBase58()}, ${config.rpcUrl})`);
+  });
 
-app.use(cors());
-app.use(express.json());
+  const shutdown = async () => {
+    await keeper?.stop();
+    server.close(() => process.exit(0));
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+}
 
-app.get("/vaults", async (__,res)=> res.json(await getAllVaults()));
-app.get("/vaults/:address/policies", async (req,res) => res.json(await getPoliciesForVault(req.params.address)));
-app.get("/vaults/:address/claims", async (req,res) => res.json(await getClaimsForVault(req.params.address)));
-app.get("/policy/:vault/:wallet", async (req,res) => res.json(await getUserPolicy(req.params.vault, req.params.wallet)));
-app.get("/claims/:wallet", async (req,res) => res.json(await getUserClaims(req.params.wallet)));
+// A stray rejection must never take down the keeper; log it and keep settling.
+process.on("unhandledRejection", (e) => console.error("[process] unhandled rejection:", e));
+process.on("uncaughtException", (e) => console.error("[process] uncaught exception:", e));
 
-app.listen(PORT, ()=>{
-    console.log(`Backend running on port ${PORT}`);
-    startListener();
-})
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

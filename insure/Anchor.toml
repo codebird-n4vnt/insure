@@ -6,13 +6,14 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-program = "5DkAk2HYyi7XDXGJpXnZuvEu7n9CLEXEFMNFnTGkjzTo"
+insure = "5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF"
 
 [programs.devnet]
 insure = "5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF"
 
 [provider]
-cluster = "https://devnet.helius-rpc.com/?api-key=61e1ae91-d025-4472-8253-bf12d40d6159"
+# Use `anchor deploy --provider.cluster <RPC_URL>` for a private RPC; never commit API keys.
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

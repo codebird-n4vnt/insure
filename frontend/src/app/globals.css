@@ -2,59 +2,69 @@
 
 @theme {
   --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
-  /* Premium Web3 Redesign Colors */
-  --color-surface-container-highest: #e6e0e9;
-  --color-surface-container: #f2ecf4;
-  --color-secondary-container: #e1d4fd;
-  --color-error: #ba1a1a;
-  --color-on-secondary-container: #645a7d;
-  --color-primary: #4f378a;
-  --color-outline-variant: #cbc4d2;
-  --color-inverse-primary: #cfbcff;
-  --color-inverse-on-surface: #f5eff7;
-  --color-background: #fdf7ff;
-  --color-surface-variant: #e6e0e9;
-  --color-primary-container: #6750a4;
-  --color-secondary-fixed: #e9ddff;
-  --color-surface-container-lowest: #ffffff;
-  --color-on-tertiary-container: #503d00;
-  --color-on-surface-variant: #494551;
-  --color-on-error: #ffffff;
-  --color-on-background: #1d1b20;
-  --color-on-error-container: #93000a;
-  --color-on-tertiary-fixed-variant: #594400;
-  --color-on-surface: #1d1b20;
-  --color-on-secondary-fixed-variant: #4b4263;
-  --color-primary-fixed: #e9ddff;
-  --color-surface-container-low: #f8f2fa;
-  --color-on-secondary-fixed: #1f1635;
-  --color-on-primary-fixed: #22005d;
-  --color-on-tertiary: #ffffff;
-  --color-surface-tint: #6750a4;
-  --color-tertiary-fixed-dim: #e7c365;
-  --color-secondary: #63597c;
-  --color-on-tertiary-fixed: #241a00;
-  --color-surface: #fdf7ff;
+  /* Brand: teal · sage · slate (from the Insure logo). Contrast-checked:
+     white on primary 5.9:1, ink on background 12:1, slate on background 6.1:1. */
+  --color-primary: #2c6e6a;
   --color-on-primary: #ffffff;
-  --color-on-primary-fixed-variant: #4f378a;
-  --color-inverse-surface: #322f35;
-  --color-tertiary-fixed: #ffdf93;
-  --color-surface-bright: #fdf7ff;
+  --color-primary-container: #3b7f7a;
+  --color-on-primary-container: #e3f3f1;
+  --color-primary-fixed: #d5ecea;
+  --color-primary-fixed-dim: #8bbdb9;
+  --color-on-primary-fixed: #0b2c2a;
+  --color-on-primary-fixed-variant: #2c6e6a;
+  --color-inverse-primary: #8bbdb9;
+  --color-surface-tint: #2c6e6a;
+
+  --color-secondary: #4f6070;
   --color-on-secondary: #ffffff;
+  --color-secondary-container: #dcece9;
+  --color-on-secondary-container: #1f4d4a;
+  --color-secondary-fixed: #dcece9;
+  --color-secondary-fixed-dim: #b9d3cf;
+  --color-on-secondary-fixed: #10302d;
+  --color-on-secondary-fixed-variant: #2e4f4c;
+
+  --color-tertiary: #4f6f5c;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #93b09e;
+  --color-on-tertiary-container: #1d3527;
+  --color-tertiary-fixed: #dfeae2;
+  --color-tertiary-fixed-dim: #b4ccbd;
+  --color-on-tertiary-fixed: #13261a;
+  --color-on-tertiary-fixed-variant: #3a5747;
+
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
-  --color-tertiary-container: #c9a74d;
-  --color-secondary-fixed-dim: #cdc0e9;
-  --color-outline: #7a7582;
-  --color-surface-dim: #ded8e0;
-  --color-primary-fixed-dim: #cfbcff;
-  --color-tertiary: #765b00;
-  --color-surface-container-high: #ece6ee;
-  --color-on-primary-container: #e0d2ff;
+  --color-on-error-container: #93000a;
+
+  --color-background: #f7f8f5;
+  --color-on-background: #26343d;
+  --color-surface: #f7f8f5;
+  --color-on-surface: #26343d;
+  --color-surface-bright: #fbfcfa;
+  --color-surface-dim: #d9e0dd;
+  --color-surface-variant: #e2e9e6;
+  --color-on-surface-variant: #4f6070;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f1f5f3;
+  --color-surface-container: #e9efec;
+  --color-surface-container-high: #e2e9e6;
+  --color-surface-container-highest: #dbe3e0;
+  --color-inverse-surface: #26343d;
+  --color-inverse-on-surface: #eef3f1;
+
+  --color-outline: #66757d;
+  --color-outline-variant: #cfd8d6;
+
+  /* Chart marks (validated: CVD-separable, >=3:1 on white) */
+  --color-chart-base: #00897b;
+  --color-chart-trigger: #c2601a;
 }
 
 :root {
-  --background: #fdf7ff;
-  --foreground: #1d1b20;
+  --background: #f7f8f5;
+  --foreground: #26343d;
 }
 
 body {
@@ -66,21 +76,21 @@ body {
 
 /* Custom Styles */
 .glass-nav {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
 .floating-shadow {
-  box-shadow: 0 20px 40px rgba(74, 58, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(44, 110, 106, 0.10);
 }
 
 .electric-glow {
-  box-shadow: 0 10px 30px rgba(79, 55, 138, 0.3);
+  box-shadow: 0 10px 30px rgba(44, 110, 106, 0.28);
 }
 
 .electric-glow:hover {
-  box-shadow: 0 15px 40px rgba(79, 55, 138, 0.5);
+  box-shadow: 0 15px 40px rgba(44, 110, 106, 0.42);
 }
 
 @keyframes blob {
@@ -106,7 +116,7 @@ body {
 }
 /* ── Wallet Adapter Button Overrides ── */
 .wallet-adapter-button {
-  background-color: #4f378a !important;
+  background-color: #2c6e6a !important;
   color: #ffffff !important;
   font-family: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif !important;
   font-size: 12px !important;
@@ -118,18 +128,18 @@ body {
   height: auto !important;
   line-height: 1 !important;
   border: none !important;
-  box-shadow: 0 10px 30px rgba(79, 55, 138, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(44, 110, 106, 0.28) !important;
   transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 .wallet-adapter-button:hover:not([disabled]) {
-  background-color: #6750a4 !important;
-  box-shadow: 0 15px 40px rgba(79, 55, 138, 0.5) !important;
+  background-color: #3b7f7a !important;
+  box-shadow: 0 15px 40px rgba(44, 110, 106, 0.42) !important;
   transform: scale(1.03) !important;
 }
 
 .wallet-adapter-button-trigger {
-  background-color: #4f378a !important;
+  background-color: #2c6e6a !important;
 }
 
 .wallet-adapter-modal-wrapper {
@@ -140,16 +150,16 @@ body {
 }
 
 .wallet-adapter-modal-title {
-  color: #1d1b20 !important;
+  color: #26343d !important;
   font-family: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif !important;
   font-weight: 800 !important;
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button {
-  background-color: #f8f2fa !important;
-  color: #1d1b20 !important;
+  background-color: #f1f5f3 !important;
+  color: #26343d !important;
   box-shadow: none !important;
-  border: 1px solid #cbc4d2 !important;
+  border: 1px solid #cfd8d6 !important;
   border-radius: 12px !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
@@ -158,8 +168,25 @@ body {
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button:hover {
-  background-color: #e1d4fd !important;
-  border-color: #4f378a !important;
+  background-color: #dcece9 !important;
+  border-color: #2c6e6a !important;
   box-shadow: none !important;
   transform: none !important;
 }
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob, .animate-spin, .animate-pulse { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface-container) 25%, var(--color-surface-container-low) 50%, var(--color-surface-container) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+.leaflet-container { font-family: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif; border-radius: 12px; }
