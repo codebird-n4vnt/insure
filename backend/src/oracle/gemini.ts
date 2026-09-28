@@ -220,8 +220,15 @@ export async function explainDecision(
     },
     deps
   );
-  // The explanation is optional; never let it delay a payout.
-  const timeout = new Promise<null>((r) => setTimeout(() => r(null), budgetMs).unref?.());
-  const res = await Promise.race([call, timeout]);
-  return res?.value ?? null;
+  // The explanation is optional; never let it delay a payout. The timer stays
+  // ref'd (an unref'd one lets the event loop drain while the race is pending)
+  // and is cleared as soon as either side settles.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((r) => (timer = setTimeout(() => r(null), budgetMs)));
+  try {
+    const res = await Promise.race([call, timeout]);
+    return res?.value ?? null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
