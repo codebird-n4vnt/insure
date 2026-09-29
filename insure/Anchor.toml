@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-insure = "5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF"
+insure = "DnmURZWk5UgpQnFoonbm58KoZjAuM4a4uvMysi3HzhR3"
 
 [programs.devnet]
-insure = "5v7WLSTuZPwfjKWaEvPNfic6sghmnaoup1oxFfbNe4wF"
+insure = "DnmURZWk5UgpQnFoonbm58KoZjAuM4a4uvMysi3HzhR3"
 
 [provider]
 # Use `anchor deploy --provider.cluster <RPC_URL>` for a private RPC; never commit API keys.
