@@ -166,6 +166,8 @@ bash stack.sh down
 
 ## Deploy to devnet
 
+**Live on devnet:** program [`DnmURZWk5UgpQnFoonbm58KoZjAuM4a4uvMysi3HzhR3`](https://explorer.solana.com/address/DnmURZWk5UgpQnFoonbm58KoZjAuM4a4uvMysi3HzhR3?cluster=devnet), with its config set to oracle `AfP3tEb3zCpUHisnty76KAz53L3Bu71xs2oJu3zRnsJ5` and Circle devnet USDC. The pre-audit hackathon version at `5v7W…` is still on devnet but no longer used. The steps below deploy your own copy.
+
 A step-by-step runbook. Costs are in devnet SOL, which is free (`solana airdrop` or <https://faucet.solana.com>).
 
 **1. Wallet and cluster**
@@ -173,20 +175,21 @@ A step-by-step runbook. Costs are in devnet SOL, which is free (`solana airdrop`
 ```bash
 solana config set --url devnet
 solana-keygen new                     # skip if ~/.config/solana/id.json exists; this key becomes the upgrade authority
-solana airdrop 5                      # repeat (or use the web faucet) until you have ~8 SOL
+solana airdrop 2                      # repeat (or use the web faucet) until you have ~3 SOL
 ```
 
-**2. Program.** The program is 508 KB, so its account needs **~3.54 SOL** of rent. A fresh deploy needs about double while uploading; the buffer is refunded.
+**2. Program.** The program is 508 KB. Its account took **2.58 SOL** of rent on devnet (Oct 2026). The upload buffer costs the same, but the loader refunds it before paying for the program account, so about 2.7 SOL covers a deploy.
 
-- **Fresh deploy (new program ID).** Recommended: account layouts changed from the hackathon version.
+- **Fresh deploy (new program ID).**
   ```bash
   cd insure
-  anchor keys sync                    # writes a new program ID into lib.rs + Anchor.toml
+  anchor keys sync                    # writes your program ID into lib.rs (check Anchor.toml: it may only update [programs.devnet])
   anchor build
   anchor deploy --provider.cluster devnet
   cd .. && bash scripts/sync-idl.sh   # copy the IDL/types into backend/ and frontend/
   ```
-- **Upgrade `5v7W…` in place.** Only if you still have its original `insure/target/deploy/insure-keypair.json`. Extend the program account first if the new binary is larger: `solana program extend <PROGRAM_ID> <extra-bytes>`. Then run `anchor deploy --provider.cluster devnet`. Old accounts from the previous layout are ignored by the app.
+- **Upgrade later.** Rebuild, then run `anchor deploy --provider.cluster devnet` as the upgrade authority. Extend the program account first if the new binary is larger: `solana program extend <PROGRAM_ID> <extra-bytes>`.
+- **If the upload stalls** (the public RPC answers `429 Too many requests`), deploy with `solana program deploy` and its default mode, which sends writes straight to validators. Avoid `--use-rpc`, which sends every write through the rate-limited RPC. Pass `--buffer <keypair-file>` so a failed upload can resume.
 
 **3. Oracle and protocol config**
 
