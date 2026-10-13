@@ -12,9 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pinned to the toolchain that built the devnet deployment. "stable" moved to 4.3,
+      # whose binaries litesvm 0.10 refuses to load (add_program: InvalidAccountData).
       - name: Install Solana CLI (platform tools for cargo build-sbf)
         run: |
-          sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          sh -c "$(curl -sSfL https://release.anza.xyz/v4.2.2/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
 
       - uses: actions/cache@v4
@@ -23,7 +25,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             insure/target
-          key: cargo-${{ hashFiles('insure/Cargo.lock') }}
+          key: cargo-solana-4.2.2-${{ hashFiles('insure/Cargo.lock') }}
 
       - name: Build program
         working-directory: insure
